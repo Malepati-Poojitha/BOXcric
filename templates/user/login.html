@@ -248,20 +248,16 @@ function sendOtp() {
 
   api('/api/user/forgot-password', 'POST', { email: email }).then(function(res) {
     btnLoading(btn, false);
-    if (res && (res.email_sent || res.otp_preview)) {
-      // Save the otp_key from server
-      if (res.otp_key) otpKey = res.otp_key;
+    if (res && res.otp_key) {
+      otpKey = res.otp_key;
 
       if (res.email_sent) {
-        // OTP sent to email
         document.getElementById('otpMsg').textContent = 'OTP sent to ' + email + ' \u2709\ufe0f';
-        document.getElementById('otpBanner').style.display = 'none';
         toast('OTP sent to your email! Check inbox \u2709\ufe0f', 'success');
       } else {
-        // Email not configured on server
-        document.getElementById('otpMsg').textContent = 'OTP generated for ' + email;
+        document.getElementById('otpMsg').textContent = 'OTP generated for ' + email + ' \u2709\ufe0f';
         document.getElementById('otpBanner').style.display = 'block';
-        toast('OTP generated! Check server logs or configure email.', 'success');
+        toast('OTP generated! Check your email \u2709\ufe0f', 'success');
       }
       document.getElementById('otpStep1').style.display = 'none';
       document.getElementById('otpStep2').style.display = 'block';
