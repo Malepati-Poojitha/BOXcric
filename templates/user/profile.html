@@ -23,7 +23,7 @@
         <span class="btn btn-outline btn-sm">📷 Change Photo</span>
         <input type="file" id="editPhoto" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="uploadNewPhoto(this)">
       </label>
-      <h2 style="font-size:20px;font-weight:700;margin:4px 0">{{ user.name }}</h2>
+      <h2 style="font-size:20px;font-weight:700;margin:4px 0">{{ user.name }}{% if user.nickname %} <span style="font-weight:400;color:var(--text-muted)">({{ user.nickname }})</span>{% endif %}</h2>
       <p class="text-sm text-muted">{{ user.email }}{% if user.phone %} • {{ user.phone }}{% endif %}</p>
       <div class="mt-2" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         {% if user.player_role %}
@@ -60,6 +60,16 @@
       <!-- Always editable -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="edName" value="{{ user.name }}" placeholder="Your full name">
+        </div>
+        <div class="form-group">
+          <label>Nickname</label>
+          <input type="text" id="edNickname" value="{{ user.nickname or '' }}" placeholder="e.g. Virat, MSD">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
           <label>Age</label>
           <input type="number" id="edAge" value="{{ user.age or '' }}" placeholder="Age" min="10" max="80">
         </div>
@@ -76,9 +86,9 @@
       <div class="form-group">
         <label>Gender</label>
         <div style="display:flex;gap:8px">
-          <button type="button" class="btn btn-outline btn-sm" id="edGenderMale" onclick="pick('gender','male')" style="flex:1{% if user.gender == 'male' %}{% endif %}">👨 Male</button>
-          <button type="button" class="btn btn-outline btn-sm" id="edGenderFemale" onclick="pick('gender','female')" style="flex:1{% if user.gender == 'female' %}{% endif %}">👩 Female</button>
-          <button type="button" class="btn btn-outline btn-sm" id="edGenderOther" onclick="pick('gender','other')" style="flex:1{% if user.gender == 'other' %}{% endif %}">🧑 Other</button>
+          <button type="button" class="btn btn-outline btn-sm{% if user.gender == 'male' %} selected-opt{% endif %}" id="edGenderMale" onclick="pick('gender','male')" style="flex:1">👨 Male</button>
+          <button type="button" class="btn btn-outline btn-sm{% if user.gender == 'female' %} selected-opt{% endif %}" id="edGenderFemale" onclick="pick('gender','female')" style="flex:1">👩 Female</button>
+          <button type="button" class="btn btn-outline btn-sm{% if user.gender == 'other' %} selected-opt{% endif %}" id="edGenderOther" onclick="pick('gender','other')" style="flex:1">🧑 Other</button>
         </div>
       </div>
 
@@ -182,8 +192,12 @@ function pick(group, value) {
 
 function saveProfile() {
   var data = {};
+  var name = document.getElementById('edName').value.trim();
+  var nickname = document.getElementById('edNickname').value.trim();
   var age = document.getElementById('edAge').value;
   var height = document.getElementById('edHeight').value.trim();
+  if (name && name.length >= 2) data.name = name;
+  if (nickname) data.nickname = nickname;
   if (age) data.age = parseInt(age);
   if (height) data.height = height;
   if (edGender) data.gender = edGender;

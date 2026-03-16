@@ -11,7 +11,7 @@ from app.schemas.user import (
 )
 from app.auth import (
     hash_password, verify_password, create_access_token,
-    get_current_user_from_cookie, generate_otp, verify_otp,
+    get_current_user_from_cookie, generate_otp, verify_otp, send_otp_email,
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -114,7 +114,11 @@ def update_profile(data: ProfileUpdate, request: Request, db: Session = Depends(
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    # Always allowed: age, height
+    # Always allowed: name, nickname, age, height
+    if data.name is not None and len(data.name.strip()) >= 2:
+        user.name = data.name.strip()
+    if data.nickname is not None:
+        user.nickname = data.nickname.strip() or None
     if data.age is not None:
         user.age = data.age
     if data.height is not None:
@@ -199,18 +203,27 @@ async def upload_photo(request: Request, photo: UploadFile = File(...), db: Sess
 
 @router.post("/forgot-password")
 def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    """Send OTP to phone. Auto-registers if phone not found (new user)."""
-    phone = data.phone.strip()
-    if not phone:
-        raise HTTPException(status_code=400, detail="Phone number is required")
-
-    user = db.query(User).filter(User.phone == phone, User.is_active == True).first()
-
-    # Auto-register if phone not found
+    """Send OTP to email. Auto-registers if email not found (new user)."""
+    email = data.email.strip().lower() if data.email else ""
+    phone = data.phone.strip() if data.phone else ""
+    
+    if not email and not phone:
+        raise HTTPException(status_code=400, detail="Email or phone is required")
+    
+    # Look up user by email first, then phone
+    user = None
+    if email:
+        user = db.query(User).filter(User.email == email, User.is_active == True).first()
+    if not user and phone:
+        user = db.query(User).filter(User.phone == phone, User.is_active == True).first()
+    
+    # Auto-register if not found
     if not user:
+        if not email:
+            email = f"{phone}@boxcric.local"
         user = User(
             name="New User",
-            email=f"{phone}@boxcric.local",
+            email=email,
             phone=phone,
             hashed_password=hash_password("boxcric_auto"),
             profile_complete=False,
@@ -218,23 +231,33 @@ def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
         db.refresh(user)
-
-    otp = generate_otp(phone, user.id)
-    is_new = not user.profile_complete
-    return {
-        "detail": f"OTP sent to {phone}",
-        "otp_preview": otp,
+    
+    # Use email as OTP key
+    otp_key = user.email
+    otp = generate_otp(otp_key, user.id)
+    
+    # Try to send via email
+    email_sent = send_otp_email(user.email, otp, user.name)
+    
+    result = {
+        "detail": f"OTP sent to {user.email}" if email_sent else f"OTP generated for {otp_key}",
+        "email_sent": email_sent,
         "expires_in_minutes": 5,
         "user_name": user.name,
-        "is_new_user": is_new,
+        "is_new_user": not user.profile_complete,
+        "otp_key": otp_key,
     }
+    # Only show OTP on screen if email wasn't sent
+    if not email_sent:
+        result["otp_preview"] = otp
+    return result
 
 
 @router.post("/verify-otp", response_model=TokenOut)
 def verify_otp_endpoint(data: VerifyOtpRequest, response: Response, db: Session = Depends(get_db)):
     """Verify OTP and log the user in."""
-    phone = data.phone.strip()
-    user_id = verify_otp(phone, data.otp.strip())
+    otp_key = data.email.strip().lower() if data.email else data.phone.strip()
+    user_id = verify_otp(otp_key, data.otp.strip())
     if user_id is None:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 

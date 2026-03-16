@@ -2,10 +2,6 @@
 {% block title %}BOXcric — Login{% endblock %}
 
 {% block content %}
-<!-- Firebase SDK (loaded only on login page) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
 <div style="max-width:420px;margin:40px auto">
   <div class="text-center mb-4">
     <img src="/static/images/logo.svg" alt="BOXcric" style="width:100px;height:100px;border-radius:20px;margin:0 auto">
@@ -17,26 +13,24 @@
   <div id="panelOtp" class="card">
     <div class="card-body">
 
-      <!-- Step 1: Enter phone -->
+      <!-- Step 1: Enter email -->
       <div id="otpStep1">
         <div class="text-center mb-4">
-          <div style="font-size:36px">📱</div>
-          <p class="text-sm text-muted mt-2">Enter your registered phone number to get OTP via SMS</p>
+          <div style="font-size:36px">📧</div>
+          <p class="text-sm text-muted mt-2">Enter your email to get a login OTP</p>
         </div>
         <div class="form-group">
-          <label>Phone Number (with country code)</label>
-          <input type="tel" id="otpPhone" placeholder="+91 9876543210" inputmode="tel">
+          <label>Email Address</label>
+          <input type="email" id="otpEmail" placeholder="yourname@gmail.com" inputmode="email" autocomplete="email">
         </div>
-        <!-- reCAPTCHA container (invisible, required by Firebase) -->
-        <div id="recaptcha-container"></div>
-        <button class="btn btn-primary btn-lg btn-block mt-4" onclick="sendOtp()">Send OTP via SMS</button>
+        <button id="btnSendOtp" class="btn btn-primary btn-lg btn-block mt-4" onclick="sendOtp()">Send OTP</button>
       </div>
 
       <!-- Step 2: Enter OTP -->
       <div id="otpStep2" style="display:none">
         <div class="text-center mb-4">
           <div style="font-size:36px">🔐</div>
-          <p class="text-sm" style="color:#2d6a4f;font-weight:600" id="otpMsg">OTP sent via SMS!</p>
+          <p class="text-sm" style="color:#2d6a4f;font-weight:600" id="otpMsg">OTP sent to your email!</p>
         </div>
         <div id="otpBanner" style="display:none;background:#0d2818;color:#fff;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px">
           <div style="font-size:12px;opacity:0.7">Your OTP is</div>
@@ -47,7 +41,7 @@
           <label>Enter OTP</label>
           <input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" style="font-size:24px;text-align:center;letter-spacing:8px;font-weight:700">
         </div>
-        <button class="btn btn-primary btn-lg btn-block mt-4" onclick="verifyOtp()">Login</button>
+        <button id="btnLogin" class="btn btn-primary btn-lg btn-block mt-4" onclick="verifyOtp()">Login</button>
         <p class="text-center mt-4">
           <a href="javascript:void(0)" onclick="sendOtp()" style="color:#e63946;font-size:13px;font-weight:600">Resend OTP</a>
         </p>
@@ -67,7 +61,6 @@
         <label>Full Name *</label>
         <input type="text" id="regName" placeholder="Your name">
       </div>
-      <div class="form-group">
       <div class="form-group">
         <label>Phone * <span style="font-weight:400;color:#6c757d">(used for OTP login)</span></label>
         <input type="tel" id="regPhone" placeholder="Phone number" inputmode="tel">
@@ -102,6 +95,18 @@
           <span class="btn btn-outline btn-sm">Upload Photo</span>
           <input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="previewPhoto(this)">
         </label>
+      </div>
+
+      <!-- Name & Nickname -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="profName" placeholder="Your full name">
+        </div>
+        <div class="form-group">
+          <label>Nickname</label>
+          <input type="text" id="profNickname" placeholder="e.g. Virat, MSD">
+        </div>
       </div>
 
       <!-- Age & Height -->
@@ -183,8 +188,12 @@
 {% endblock %}
 
 {% block scripts %}
+<style>
+.spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+button:disabled{opacity:.7;cursor:wait}
+</style>
 <script>
-var otpPhone = '';
 var profileBat = '';
 var profileBowl = '';
 var profileType = '';
@@ -215,88 +224,52 @@ function switchTo(tab) {
   }
 }
 
-// ===== FIREBASE PHONE AUTH INIT =====
-var firebaseApp = null;
-var firebaseAuth = null;
-var firebaseConfirmation = null;
+// ===== OTP LOGIN via EMAIL =====
+var otpKey = '';  // email used as OTP key
 
-function initFirebase() {
-  if (typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED && typeof FIREBASE_CONFIG !== 'undefined') {
-    try {
-      // Firebase Phone Auth only works on localhost or HTTPS domains
-      var host = window.location.hostname;
-      if (host !== 'localhost' && host !== '127.0.0.1' && !window.location.protocol.startsWith('https')) {
-        console.log('Firebase Phone Auth requires localhost or HTTPS. Using fallback OTP.');
-        return false;
-      }
-      firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
-      firebaseAuth = firebase.auth();
-      firebaseAuth.languageCode = 'en';
-      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-        size: 'invisible',
-        callback: function() {}
-      });
-      console.log('Firebase Phone Auth initialized!');
-      return true;
-    } catch(e) {
-      console.log('Firebase init failed:', e);
-      return false;
-    }
+function btnLoading(btn, loading) {
+  if (!btn) return;
+  if (loading) {
+    btn.disabled = true;
+    btn.dataset.origText = btn.textContent;
+    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span class="spinner"></span>' + btn.textContent + '...</span>';
+  } else {
+    btn.disabled = false;
+    btn.textContent = btn.dataset.origText || btn.textContent;
   }
-  return false;
 }
 
-// ===== OTP LOGIN =====
 function sendOtp() {
-  var phone = document.getElementById('otpPhone').value.trim();
-  if (!phone) { toast('Enter your phone number', 'error'); return; }
+  var email = document.getElementById('otpEmail').value.trim();
+  if (!email || email.indexOf('@') === -1) { toast('Enter a valid email address', 'error'); return; }
 
-  // Add +91 if no country code
-  if (!phone.startsWith('+')) {
-    phone = '+91' + phone.replace(/^0/, '');
-  }
-  // Store clean phone (without +91) for our backend
-  var cleanPhone = phone.replace(/^\+91/, '').replace(/^\+/, '');
-  otpPhone = cleanPhone;
+  otpKey = email;
+  var btn = document.getElementById('btnSendOtp');
+  btnLoading(btn, true);
 
-  // Try Firebase first
-  if (firebaseAuth && window.recaptchaVerifier) {
-    toast('Sending SMS...', 'info');
-    firebaseAuth.signInWithPhoneNumber(phone, window.recaptchaVerifier)
-      .then(function(confirmationResult) {
-        firebaseConfirmation = confirmationResult;
-        document.getElementById('otpMsg').textContent = 'OTP sent via SMS to ' + phone;
+  api('/api/user/forgot-password', 'POST', { email: email }).then(function(res) {
+    btnLoading(btn, false);
+    if (res && (res.email_sent || res.otp_preview)) {
+      // Save the otp_key from server
+      if (res.otp_key) otpKey = res.otp_key;
+
+      if (res.email_sent) {
+        // OTP sent to email
+        document.getElementById('otpMsg').textContent = 'OTP sent to ' + email + ' \u2709\ufe0f';
         document.getElementById('otpBanner').style.display = 'none';
-        document.getElementById('otpStep1').style.display = 'none';
-        document.getElementById('otpStep2').style.display = 'block';
-        document.getElementById('otpInput').focus();
-        toast('OTP sent via SMS! Check your phone 📱', 'success');
-      })
-      .catch(function(error) {
-        console.log('Firebase SMS error:', error);
-        // Fall back to our own OTP system
-        toast('SMS unavailable, using app OTP', 'info');
-        sendOtpFallback(cleanPhone);
-      });
-    return;
-  }
-
-  // Fallback: our own OTP system (shows OTP on screen)
-  sendOtpFallback(cleanPhone);
-}
-
-function sendOtpFallback(cleanPhone) {
-  api('/api/user/forgot-password', 'POST', { phone: cleanPhone }).then(function(res) {
-    if (res && res.otp_preview) {
-      document.getElementById('otpMsg').textContent = 'OTP for ' + cleanPhone + ' (' + res.user_name + ')';
-      document.getElementById('otpCode').textContent = res.otp_preview;
-      document.getElementById('otpBanner').style.display = 'block';
+        toast('OTP sent to your email! Check inbox \u2709\ufe0f', 'success');
+      } else {
+        // No email configured \u2014 show OTP on screen (local testing)
+        document.getElementById('otpMsg').textContent = 'OTP for ' + email + ' (' + res.user_name + ')';
+        document.getElementById('otpCode').textContent = res.otp_preview;
+        document.getElementById('otpBanner').style.display = 'block';
+        toast('OTP generated! (Email not configured \u2014 showing on screen)', 'success');
+      }
       document.getElementById('otpStep1').style.display = 'none';
       document.getElementById('otpStep2').style.display = 'block';
       document.getElementById('otpInput').focus();
-      toast('OTP generated!', 'success');
     } else {
-      toast(res && res.detail ? res.detail : 'Phone not found. Register first!', 'error');
+      toast(res && res.detail ? res.detail : 'Failed to send OTP', 'error');
     }
   });
 }
@@ -305,82 +278,20 @@ function verifyOtp() {
   var otp = document.getElementById('otpInput').value.trim();
   if (!otp || otp.length !== 6) { toast('Enter 6-digit OTP', 'error'); return; }
 
-  // If Firebase was used, verify with Firebase first
-  if (firebaseConfirmation) {
-    toast('Verifying...', 'info');
-    firebaseConfirmation.confirm(otp)
-      .then(function(result) {
-        // Firebase verified! Now login with our backend
-        loginWithPhone(otpPhone);
-      })
-      .catch(function(error) {
-        toast('Invalid OTP. Try again.', 'error');
-      });
-    return;
-  }
-
-  // Fallback: our own OTP verification
-  api('/api/user/verify-otp', 'POST', { phone: otpPhone, otp: otp }).then(function(res) {
+  var btn = document.getElementById('btnLogin');
+  btnLoading(btn, true);
+  api('/api/user/verify-otp', 'POST', { email: otpKey, otp: otp }).then(function(res) {
     if (res && res.access_token) {
-      toast('Welcome back!', 'success');
+      btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span class="spinner"></span>Logging in...</span>';
+      toast('Welcome! \ud83c\udfcf', 'success');
       if (res.user && !res.user.profile_complete) {
         setTimeout(function() { window.location.href = '/app/profile'; }, 500);
       } else {
         setTimeout(function() { window.location.href = '/app'; }, 500);
       }
     } else {
+      btnLoading(btn, false);
       toast(res && res.detail ? res.detail : 'Invalid OTP', 'error');
-    }
-  });
-}
-
-function loginWithPhone(phone) {
-  // After Firebase OTP verified, generate a server OTP and auto-verify it
-  api('/api/user/forgot-password', 'POST', { phone: phone }).then(function(res) {
-    if (res && res.otp_preview) {
-      // Auto-verify with the server OTP
-      api('/api/user/verify-otp', 'POST', { phone: phone, otp: res.otp_preview }).then(function(res2) {
-        if (res2 && res2.access_token) {
-          toast('Welcome back!', 'success');
-          if (res2.user && !res2.user.profile_complete) {
-            setTimeout(function() { window.location.href = '/app/profile'; }, 500);
-          } else {
-            setTimeout(function() { window.location.href = '/app'; }, 500);
-          }
-        } else {
-          toast('Login failed', 'error');
-        }
-      });
-    } else {
-      toast(res && res.detail ? res.detail : 'Account not found. Register first!', 'error');
-    }
-  });
-}
-
-// Initialize Firebase on page load
-document.addEventListener('DOMContentLoaded', function() {
-  initFirebase();
-});
-
-// ===== REGISTER =====
-function doRegister() {
-  var name = document.getElementById('regName').value.trim();
-  var phone = document.getElementById('regPhone').value.trim();
-  var password = document.getElementById('regPassword').value;
-
-  if (!name || !password) { toast('Fill in required fields', 'error'); return; }
-  if (!phone) { toast('Phone is required for OTP login', 'error'); return; }
-  if (password.length < 4) { toast('Password: min 4 characters', 'error'); return; }
-
-  var email = phone + '@boxcric.local';
-
-  api('/api/user/register', 'POST', { name: name, email: email, phone: phone, password: password }).then(function(res) {
-    if (res && res.access_token) {
-      toast('Account created! Set up your profile', 'success');
-      localStorage.setItem('boxcric_registered', '1');
-      switchTo('profile');
-    } else {
-      toast(res && res.detail ? res.detail : 'Registration failed', 'error');
     }
   });
 }
@@ -457,6 +368,10 @@ function saveProfile() {
 
   photoPromise.then(function() {
     var profileData = {};
+    var name = document.getElementById('profName').value.trim();
+    var nickname = document.getElementById('profNickname').value.trim();
+    if (name) profileData.name = name;
+    if (nickname) profileData.nickname = nickname;
     if (age) profileData.age = parseInt(age);
     if (height) profileData.height = height;
     if (profileBat) profileData.batting_hand = profileBat;

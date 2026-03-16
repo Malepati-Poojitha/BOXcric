@@ -18,6 +18,7 @@ class UserLogin(BaseModel):
 class UserOut(BaseModel):
     id: int
     name: str
+    nickname: Optional[str] = None
     email: str
     phone: Optional[str] = None
     photo: Optional[str] = None
@@ -36,6 +37,8 @@ class UserOut(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    nickname: Optional[str] = None
     age: Optional[int] = None
     height: Optional[str] = None
     batting_hand: Optional[str] = None
@@ -52,11 +55,13 @@ class TokenOut(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
-    phone: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
 
 
 class VerifyOtpRequest(BaseModel):
-    phone: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
     otp: str
 
 

@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 _db_url = os.getenv("DATABASE_URL", "")
 # Ignore empty or invalid DATABASE_URL, use SQLite
