@@ -1,6 +1,9 @@
 import os
 import random
 import smtplib
+import json
+import urllib.request
+import urllib.error
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -16,11 +19,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 8760  # 365 days — stay logged in
 OTP_EXPIRE_MINUTES = 5
 
-# Email config — Gmail SMTP (free 500 emails/day)
-SMTP_EMAIL = os.getenv("SMTP_EMAIL", "")  # e.g. yourname@gmail.com
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")  # Gmail App Password
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+# Email config — Resend HTTP API (free 100 emails/day)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM = os.getenv("RESEND_FROM", "BOXcric <onboarding@resend.dev>")
 
 # In-memory OTP store: { identifier: { "otp": "123456", "expires": datetime, "user_id": int } }
 _otp_store: dict[str, dict] = {}
@@ -72,17 +73,11 @@ def generate_otp(identifier: str, user_id: int) -> str:
 
 
 def send_otp_email(to_email: str, otp: str, user_name: str = "User") -> bool:
-    """Send OTP via Gmail SMTP. Returns True if sent, False otherwise."""
-    if not SMTP_EMAIL or not SMTP_PASSWORD:
-        print(f"[EMAIL] SMTP not configured. SMTP_EMAIL={'set' if SMTP_EMAIL else 'empty'}, SMTP_PASSWORD={'set' if SMTP_PASSWORD else 'empty'}")
+    """Send OTP via Resend HTTP API. Returns True if sent, False otherwise."""
+    if not RESEND_API_KEY:
+        print(f"[EMAIL] Resend API key not configured")
         return False
     try:
-        print(f"[EMAIL] Sending OTP to {to_email} via {SMTP_HOST}:{SMTP_PORT} from {SMTP_EMAIL}")
-        msg = MIMEMultipart("alternative")
-        msg["From"] = f"BOXcric <{SMTP_EMAIL}>"
-        msg["To"] = to_email
-        msg["Subject"] = f"BOXcric Login OTP: {otp}"
-
         html = f"""\
         <div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:20px">
           <div style="text-align:center;margin-bottom:20px">
@@ -96,26 +91,31 @@ def send_otp_email(to_email: str, otp: str, user_name: str = "User") -> bool:
             <p style="margin:16px 0 0;color:#999;font-size:12px">Expires in 5 minutes. Do not share.</p>
           </div>
         </div>"""
-        msg.attach(MIMEText(html, "html"))
 
-        # Try SSL (port 465) first, then STARTTLS (port 587)
-        if SMTP_PORT == 465:
-            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-                server.login(SMTP_EMAIL, SMTP_PASSWORD)
-                server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
-        else:
-            try:
-                with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-                    server.starttls()
-                    server.login(SMTP_EMAIL, SMTP_PASSWORD)
-                    server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
-            except OSError:
-                # Port 587 blocked — fallback to SSL port 465
-                print(f"[EMAIL] Port {SMTP_PORT} blocked, trying SSL port 465")
-                with smtplib.SMTP_SSL(SMTP_HOST, 465, timeout=10) as server:
-                    server.login(SMTP_EMAIL, SMTP_PASSWORD)
-                    server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+        payload = json.dumps({
+            "from": RESEND_FROM,
+            "to": [to_email],
+            "subject": f"BOXcric Login OTP: {otp}",
+            "html": html
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode())
+            print(f"[EMAIL] Sent OTP to {to_email} via Resend: {result.get('id', 'ok')}")
         return True
+    except urllib.error.HTTPError as e:
+        body = e.read().decode() if e.fp else ""
+        print(f"Email send failed: HTTP {e.code} - {body}")
+        return False
     except Exception as e:
         print(f"Email send failed: {e}")
         return False
