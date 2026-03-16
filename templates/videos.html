@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}BOXcric — Videos (Admin){% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+  <h1 class="page-title">🎬 Videos</h1>
+  <button class="btn btn-primary btn-sm" onclick="showAddVideo()">+ Add Video</button>
+</div>
+
+<div id="videoList">
+  <div class="loading-center"><div class="spinner"></div></div>
+</div>
+
+<!-- Add Video Modal -->
+<div class="modal-backdrop" id="addVideoModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Video</h3>
+      <button class="modal-close" onclick="document.getElementById('addVideoModal').style.display='none'">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Tabs: URL or Upload -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px">
+        <button id="vtabUrl" style="flex:1;padding:8px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:3px solid var(--primary);color:var(--primary);margin-bottom:-2px" onclick="showVideoTab('url')">🔗 YouTube / URL</button>
+        <button id="vtabUpload" style="flex:1;padding:8px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;color:var(--text-light);margin-bottom:-2px" onclick="showVideoTab('upload')">📁 Upload File</button>
+      </div>
+
+      <!-- URL Form -->
+      <div id="videoUrlForm">
+        <div class="form-group">
+          <label>Title *</label>
+          <input type="text" id="vTitle" placeholder="Video title">
+        </div>
+        <div class="form-group">
+          <label>Video URL *</label>
+          <input type="url" id="vUrl" placeholder="https://youtube.com/watch?v=...">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="vDesc" placeholder="Optional description">
+        </div>
+        <button class="btn btn-primary btn-block mt-4" onclick="addVideoUrl()">Add Video</button>
+      </div>
+
+      <!-- Upload Form -->
+      <div id="videoUploadForm" style="display:none">
+        <div class="form-group">
+          <label>Title *</label>
+          <input type="text" id="vuTitle" placeholder="Video title">
+        </div>
+        <div class="form-group">
+          <label>Video File * <span style="font-weight:400;color:var(--text-muted)">(MP4, WebM, MOV — max 100MB)</span></label>
+          <input type="file" id="vuFile" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo" style="padding:8px">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="vuDesc" placeholder="Optional description">
+        </div>
+        <button class="btn btn-primary btn-block mt-4" onclick="uploadVideoFile()">Upload Video</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var videos = [];
+
+document.addEventListener('DOMContentLoaded', function() { loadVideos(); });
+
+function loadVideos() {
+  api('/api/videos/').then(function(data) {
+    videos = data || [];
+    renderVideos();
+  });
+}
+
+function renderVideos() {
+  var container = document.getElementById('videoList');
+  if (!videos.length) {
+    container.innerHTML = emptyState('🎬', 'No videos yet', 'Add your first video to get started.');
+    return;
+  }
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">';
+  for (var i = 0; i < videos.length; i++) {
+    var v = videos[i];
+    var embed = getEmbed(v.video_url);
+    html += '<div class="card">';
+    html += '<div style="position:relative;padding-top:56.25%;background:#000;border-radius:var(--radius) var(--radius) 0 0;overflow:hidden">';
+    html += embed;
+    html += '</div>';
+    html += '<div class="card-body">';
+    html += '<div style="font-weight:700;font-size:15px;margin-bottom:4px">' + escHtml(v.title) + '</div>';
+    if (v.description) html += '<div class="text-sm text-muted">' + escHtml(v.description) + '</div>';
+    html += '<div class="text-sm text-muted mt-2">By ' + escHtml(v.uploaded_by || 'Admin') + ' • ' + formatDate(v.created_at) + '</div>';
+    html += '<button class="btn btn-sm mt-2" style="color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0" onclick="deleteVideo(' + v.id + ')">🗑 Delete</button>';
+    html += '</div></div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function getEmbed(url) {
+  var ytId = extractYouTubeId(url);
+  if (ytId) {
+    return '<iframe src="https://www.youtube.com/embed/' + ytId + '" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen loading="lazy"></iframe>';
+  }
+  if (url.match(/\.(mp4|webm|mov)$/i) || url.startsWith('/static/')) {
+    return '<video src="' + url + '" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover" controls preload="metadata"></video>';
+  }
+  return '<div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">🔗 <a href="' + url + '" target="_blank" style="color:#fff;margin-left:4px">Open Video</a></div>';
+}
+
+function extractYouTubeId(url) {
+  var m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function formatDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString('en-IN', {day:'numeric',month:'short'}); }
+
+function showAddVideo() { document.getElementById('addVideoModal').style.display = 'flex'; }
+
+function showVideoTab(tab) {
+  document.getElementById('videoUrlForm').style.display = tab === 'url' ? 'block' : 'none';
+  document.getElementById('videoUploadForm').style.display = tab === 'upload' ? 'block' : 'none';
+  document.getElementById('vtabUrl').style.borderBottomColor = tab === 'url' ? 'var(--primary)' : 'transparent';
+  document.getElementById('vtabUrl').style.color = tab === 'url' ? 'var(--primary)' : 'var(--text-light)';
+  document.getElementById('vtabUpload').style.borderBottomColor = tab === 'upload' ? 'var(--primary)' : 'transparent';
+  document.getElementById('vtabUpload').style.color = tab === 'upload' ? 'var(--primary)' : 'var(--text-light)';
+}
+
+function addVideoUrl() {
+  var title = document.getElementById('vTitle').value.trim();
+  var url = document.getElementById('vUrl').value.trim();
+  var desc = document.getElementById('vDesc').value.trim();
+  if (!title || !url) { toast('Title and URL required', 'error'); return; }
+
+  api('/api/videos/', 'POST', { title: title, video_url: url, description: desc || null }).then(function(res) {
+    if (res && res.id) {
+      document.getElementById('addVideoModal').style.display = 'none';
+      toast('Video added!', 'success');
+      loadVideos();
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed', 'error');
+    }
+  });
+}
+
+function uploadVideoFile() {
+  var title = document.getElementById('vuTitle').value.trim();
+  var file = document.getElementById('vuFile').files[0];
+  var desc = document.getElementById('vuDesc').value.trim();
+  if (!title || !file) { toast('Title and video file required', 'error'); return; }
+
+  var fd = new FormData();
+  fd.append('title', title);
+  fd.append('video', file);
+  if (desc) fd.append('description', desc);
+
+  toast('Uploading...', 'info');
+  fetch('/api/videos/upload', { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(res) {
+    if (res && res.id) {
+      document.getElementById('addVideoModal').style.display = 'none';
+      toast('Video uploaded!', 'success');
+      loadVideos();
+    } else {
+      toast(res && res.detail ? res.detail : 'Upload failed', 'error');
+    }
+  });
+}
+
+function deleteVideo(id) {
+  if (!confirm('Delete this video?')) return;
+  api('/api/videos/' + id, 'DELETE').then(function(res) {
+    toast('Video deleted', 'success');
+    loadVideos();
+  });
+}
+</script>
+{% endblock %}

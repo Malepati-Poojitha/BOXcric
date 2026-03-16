@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}BOXcric — Home{% endblock %}
+
+{% block content %}
+<!-- Live Matches -->
+<div id="liveSection" class="hidden">
+  <h2 class="section-title">🔴 Live Matches</h2>
+  <div class="match-list" id="liveMatches"></div>
+  <div class="mt-6"></div>
+</div>
+
+<!-- Recent / Upcoming -->
+<div class="grid-2">
+  <div>
+    <h2 class="section-title">Recent Results</h2>
+    <div class="match-list" id="recentMatches">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+  </div>
+  <div>
+    <h2 class="section-title">Upcoming</h2>
+    <div class="match-list" id="upcomingMatches">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="mt-6">
+  <h2 class="section-title">Quick Stats</h2>
+  <div class="stat-grid" id="quickStats">
+    <div class="stat-card"><div class="stat-value" id="statMatches">-</div><div class="stat-label">Matches</div></div>
+    <div class="stat-card"><div class="stat-value" id="statPlayers">-</div><div class="stat-label">Players</div></div>
+    <div class="stat-card"><div class="stat-value" id="statTeams">-</div><div class="stat-label">Teams</div></div>
+    <div class="stat-card"><div class="stat-value" id="statRecords">-</div><div class="stat-label">Records</div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load all matches
+  const matches = await api('/matches/');
+  const players = await api('/players/');
+  const teams = await api('/teams/');
+  const records = await api('/records/');
+
+  // Stats
+  el('statMatches').textContent = matches.length;
+  el('statPlayers').textContent = players.length;
+  el('statTeams').textContent = teams.length;
+  el('statRecords').textContent = records.length;
+
+  // Live
+  const live = matches.filter(m => m.status === 'live' || m.status === 'innings_break');
+  if (live.length) {
+    el('liveSection').classList.remove('hidden');
+    el('liveMatches').innerHTML = live.map(m => matchCard(m, teams, '/admin/match')).join('');
+  }
+
+  // Recent completed
+  const completed = matches.filter(m => m.status === 'completed').slice(0, 5);
+  el('recentMatches').innerHTML = completed.length
+    ? completed.map(m => matchCard(m, teams, '/admin/match')).join('')
+    : emptyState('🏏', 'No matches yet', 'Create your first match to get started!');
+
+  // Upcoming
+  const upcoming = matches.filter(m => m.status === 'scheduled' || m.status === 'toss').slice(0, 5);
+  el('upcomingMatches').innerHTML = upcoming.length
+    ? upcoming.map(m => matchCard(m, teams, '/admin/match')).join('')
+    : emptyState('📅', 'Nothing scheduled', 'Schedule a new match to see it here.');
+});
+</script>
+{% endblock %}

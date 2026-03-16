@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}BOXcric — Matches{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+  <h1 class="page-title">Matches</h1>
+  <a href="/admin/new-match" class="btn btn-primary">+ New Match</a>
+</div>
+
+<!-- Filter tabs -->
+<div class="tabs" id="matchTabs">
+  <button class="tab active" data-filter="all">All</button>
+  <button class="tab" data-filter="live">Live</button>
+  <button class="tab" data-filter="scheduled">Upcoming</button>
+  <button class="tab" data-filter="completed">Completed</button>
+</div>
+
+<div class="match-list" id="matchesList">
+  <div class="loading-center"><div class="spinner"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allMatches = [];
+let allTeams = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  allTeams = await api('/teams/');
+  allMatches = await api('/matches/');
+  renderMatches('all');
+
+  document.querySelectorAll('#matchTabs .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#matchTabs .tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderMatches(tab.dataset.filter);
+    });
+  });
+});
+
+function renderMatches(filter) {
+  let filtered = allMatches;
+  if (filter === 'live') filtered = allMatches.filter(m => m.status === 'live' || m.status === 'innings_break');
+  else if (filter === 'scheduled') filtered = allMatches.filter(m => m.status === 'scheduled' || m.status === 'toss');
+  else if (filter === 'completed') filtered = allMatches.filter(m => m.status === 'completed');
+
+  el('matchesList').innerHTML = filtered.length
+    ? filtered.map(m => matchCard(m, allTeams, '/admin/match')).join('')
+    : emptyState('🏏', 'No matches found', 'Try a different filter or create a new match.');
+}
+</script>
+{% endblock %}

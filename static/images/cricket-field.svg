@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Night sky gradient -->
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0e27"/>
+      <stop offset="40%" stop-color="#0d1b2a"/>
+      <stop offset="70%" stop-color="#1b2d3e"/>
+      <stop offset="100%" stop-color="#1a3a2a"/>
+    </linearGradient>
+    <!-- Stadium grass -->
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#145a28"/>
+      <stop offset="100%" stop-color="#0e4420"/>
+    </linearGradient>
+    <!-- Floodlight glow -->
+    <radialGradient id="glow1" cx="15%" cy="25%" r="40%">
+      <stop offset="0%" stop-color="#ffeebb" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="85%" cy="25%" r="40%">
+      <stop offset="0%" stop-color="#ffeebb" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <radialGradient id="glow3" cx="50%" cy="60%" r="30%">
+      <stop offset="0%" stop-color="#7cfc00" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <!-- Star twinkle -->
+    <radialGradient id="star">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Pitch -->
+    <linearGradient id="pitchG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c8a84e"/>
+      <stop offset="50%" stop-color="#d4b55a"/>
+      <stop offset="100%" stop-color="#b89840"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Night sky -->
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+
+  <!-- Stars -->
+  <g fill="url(#star)">
+    <circle cx="120" cy="60" r="1.2"/><circle cx="340" cy="90" r="0.8"/>
+    <circle cx="500" cy="40" r="1.0"/><circle cx="680" cy="110" r="0.6"/>
+    <circle cx="820" cy="30" r="1.3"/><circle cx="1000" cy="70" r="0.9"/>
+    <circle cx="1150" cy="50" r="1.1"/><circle cx="1300" cy="95" r="0.7"/>
+    <circle cx="1450" cy="35" r="1.0"/><circle cx="1600" cy="80" r="0.8"/>
+    <circle cx="1750" cy="55" r="1.2"/><circle cx="1850" cy="100" r="0.6"/>
+    <circle cx="200" cy="150" r="0.5"/><circle cx="420" cy="170" r="0.7"/>
+    <circle cx="600" cy="130" r="0.9"/><circle cx="900" cy="160" r="0.4"/>
+    <circle cx="1100" cy="140" r="0.8"/><circle cx="1400" cy="120" r="0.6"/>
+    <circle cx="1650" cy="155" r="0.5"/><circle cx="260" cy="195" r="0.4"/>
+    <circle cx="750" cy="185" r="0.6"/><circle cx="1250" cy="175" r="0.5"/>
+    <circle cx="1550" cy="200" r="0.7"/><circle cx="1800" cy="180" r="0.4"/>
+  </g>
+
+  <!-- Moon -->
+  <circle cx="1650" cy="120" r="35" fill="#f5f0d0" opacity="0.12"/>
+  <circle cx="1658" cy="115" r="33" fill="url(#sky)" opacity="0.8"/>
+
+  <!-- Stadium silhouette (stands) -->
+  <path d="M0 420 Q200 350 400 380 Q600 340 800 360 Q960 350 960 350 Q960 350 1120 360 Q1320 340 1520 380 Q1720 350 1920 420 L1920 440 Q1600 400 1300 410 Q960 390 620 410 Q320 400 0 440Z" fill="#0a1a14" opacity="0.6"/>
+  <!-- Second tier stands -->
+  <path d="M0 440 Q300 410 600 420 Q960 405 1320 420 Q1620 410 1920 440 L1920 460 Q1500 430 1100 440 Q700 430 300 440 Q100 435 0 460Z" fill="#0d2218" opacity="0.5"/>
+
+  <!-- Tiny crowd dots -->
+  <g fill="#ffd" opacity="0.02">
+    <rect x="100" y="390" width="1720" height="50" rx="5"/>
+  </g>
+
+  <!-- Grass field -->
+  <ellipse cx="960" cy="720" rx="800" ry="350" fill="url(#grass)"/>
+
+  <!-- Mowing stripes (alternating light/dark) -->
+  <g opacity="0.06">
+    <ellipse cx="960" cy="720" rx="750" ry="320" fill="none" stroke="#2ecc71" stroke-width="45"/>
+    <ellipse cx="960" cy="720" rx="650" ry="280" fill="none" stroke="#2ecc71" stroke-width="40"/>
+    <ellipse cx="960" cy="720" rx="550" ry="240" fill="none" stroke="#2ecc71" stroke-width="35"/>
+    <ellipse cx="960" cy="720" rx="450" ry="200" fill="none" stroke="#2ecc71" stroke-width="30"/>
+    <ellipse cx="960" cy="720" rx="350" ry="160" fill="none" stroke="#2ecc71" stroke-width="25"/>
+  </g>
+
+  <!-- Center field glow (under floodlights) -->
+  <ellipse cx="960" cy="700" rx="500" ry="250" fill="url(#glow3)"/>
+
+  <!-- Boundary rope -->
+  <ellipse cx="960" cy="720" rx="720" ry="310" fill="none" stroke="#fff" stroke-width="3" opacity="0.1"/>
+
+  <!-- 30-yard circle -->
+  <ellipse cx="960" cy="700" rx="280" ry="180" fill="none" stroke="#fff" stroke-width="2" opacity="0.08" stroke-dasharray="14,8"/>
+
+  <!-- The pitch -->
+  <rect x="940" y="620" width="42" height="160" rx="2" fill="url(#pitchG)" opacity="0.3"/>
+  <!-- Crease lines -->
+  <line x1="932" y1="642" x2="990" y2="642" stroke="#fff" stroke-width="1.5" opacity="0.15"/>
+  <line x1="932" y1="758" x2="990" y2="758" stroke="#fff" stroke-width="1.5" opacity="0.15"/>
+  <!-- Stumps -->
+  <g opacity="0.2">
+    <rect x="955" y="636" width="2" height="10" fill="#fff"/>
+    <rect x="960" y="636" width="2" height="10" fill="#fff"/>
+    <rect x="965" y="636" width="2" height="10" fill="#fff"/>
+    <rect x="955" y="754" width="2" height="10" fill="#fff"/>
+    <rect x="960" y="754" width="2" height="10" fill="#fff"/>
+    <rect x="965" y="754" width="2" height="10" fill="#fff"/>
+  </g>
+
+  <!-- Floodlight towers -->
+  <!-- Left tower -->
+  <g opacity="0.25">
+    <rect x="145" y="180" width="8" height="260" fill="#334" rx="2"/>
+    <rect x="130" y="168" width="38" height="18" rx="4" fill="#445"/>
+    <rect x="132" y="170" width="34" height="14" rx="3" fill="#ffe" opacity="0.7"/>
+  </g>
+  <!-- Right tower -->
+  <g opacity="0.25">
+    <rect x="1767" y="180" width="8" height="260" fill="#334" rx="2"/>
+    <rect x="1752" y="168" width="38" height="18" rx="4" fill="#445"/>
+    <rect x="1754" y="170" width="34" height="14" rx="3" fill="#ffe" opacity="0.7"/>
+  </g>
+  <!-- Back-left tower -->
+  <g opacity="0.15">
+    <rect x="500" y="260" width="6" height="180" fill="#334" rx="2"/>
+    <rect x="488" y="250" width="30" height="14" rx="3" fill="#445"/>
+    <rect x="490" y="252" width="26" height="10" rx="2" fill="#ffe" opacity="0.6"/>
+  </g>
+  <!-- Back-right tower -->
+  <g opacity="0.15">
+    <rect x="1414" y="260" width="6" height="180" fill="#334" rx="2"/>
+    <rect x="1402" y="250" width="30" height="14" rx="3" fill="#445"/>
+    <rect x="1404" y="252" width="26" height="10" rx="2" fill="#ffe" opacity="0.6"/>
+  </g>
+
+  <!-- Light beams -->
+  <g opacity="0.03">
+    <polygon points="148,186 400,500 200,600" fill="#ffe"/>
+    <polygon points="1772,186 1520,500 1720,600" fill="#ffe"/>
+  </g>
+
+  <!-- Floodlight glows -->
+  <rect width="1920" height="1080" fill="url(#glow1)"/>
+  <rect width="1920" height="1080" fill="url(#glow2)"/>
+
+  <!-- Scoreboard in the distance -->
+  <g opacity="0.08">
+    <rect x="860" y="340" width="200" height="50" rx="5" fill="#112"/>
+    <rect x="865" y="345" width="90" height="40" rx="3" fill="#0f0" opacity="0.3"/>
+    <rect x="960" y="345" width="90" height="40" rx="3" fill="#ff0" opacity="0.2"/>
+  </g>
+
+  <!-- Atmospheric haze at horizon -->
+  <rect x="0" y="400" width="1920" height="100" fill="#1a3a2a" opacity="0.15"/>
+
+  <!-- Soft bokeh lights (atmosphere) -->
+  <g opacity="0.03">
+    <circle cx="300" cy="350" r="20" fill="#ff0"/>
+    <circle cx="600" cy="380" r="15" fill="#0ff"/>
+    <circle cx="1300" cy="370" r="18" fill="#ff0"/>
+    <circle cx="1600" cy="355" r="12" fill="#0ff"/>
+  </g>
+
+  <!-- Dark overlay for text readability -->
+  <rect width="1920" height="1080" fill="#0a1510" opacity="0.55"/>
+</svg>

@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Main gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a472a"/>
+      <stop offset="50%" stop-color="#0d2818"/>
+      <stop offset="100%" stop-color="#1a472a"/>
+    </linearGradient>
+    <!-- Gold accent -->
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5d442"/>
+      <stop offset="50%" stop-color="#e8b923"/>
+      <stop offset="100%" stop-color="#f5d442"/>
+    </linearGradient>
+    <!-- Red accent -->
+    <linearGradient id="red" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e63946"/>
+      <stop offset="100%" stop-color="#c1121f"/>
+    </linearGradient>
+    <!-- Bat wood -->
+    <linearGradient id="batWood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e8d5a3"/>
+      <stop offset="40%" stop-color="#d4b87a"/>
+      <stop offset="100%" stop-color="#c4a35a"/>
+    </linearGradient>
+    <!-- Ball shine -->
+    <radialGradient id="ballShine" cx="35%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="60%" stop-color="#e63946"/>
+      <stop offset="100%" stop-color="#a01020"/>
+    </radialGradient>
+    <!-- Inner shadow -->
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <!-- Drop shadow -->
+    <filter id="dropShadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <!-- Text shadow -->
+    <filter id="textShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- ===== BACKGROUND SHIELD SHAPE ===== -->
+  <path d="M256 20 C380 20 470 60 480 80 L480 300 C480 420 380 480 256 500 C132 480 32 420 32 300 L32 80 C42 60 132 20 256 20Z" 
+        fill="url(#bgGrad)" stroke="#2d6a4f" stroke-width="3"/>
+  <!-- Inner border -->
+  <path d="M256 35 C370 35 455 70 465 88 L465 296 C465 408 370 465 256 484 C142 465 47 408 47 296 L47 88 C57 70 142 35 256 35Z" 
+        fill="none" stroke="url(#gold)" stroke-width="2" opacity="0.5"/>
+
+  <!-- ===== CRICKET BAT ===== -->
+  <g transform="translate(256,250) rotate(-30)" filter="url(#dropShadow)">
+    <!-- Bat blade -->
+    <rect x="-18" y="-90" width="36" height="105" rx="4" fill="url(#batWood)"/>
+    <!-- Bat edge highlight -->
+    <rect x="-18" y="-90" width="4" height="105" rx="2" fill="#f0e4c4" opacity="0.5"/>
+    <!-- Bat shoulder -->
+    <rect x="-14" y="-93" width="28" height="8" rx="3" fill="#c4a35a"/>
+    <!-- Bat handle -->
+    <rect x="-7" y="-140" width="14" height="50" rx="4" fill="#8B6914"/>
+    <!-- Handle grip -->
+    <g opacity="0.7">
+      <rect x="-7" y="-138" width="14" height="4" rx="1" fill="#d4b87a"/>
+      <rect x="-7" y="-130" width="14" height="4" rx="1" fill="#d4b87a"/>
+      <rect x="-7" y="-122" width="14" height="4" rx="1" fill="#d4b87a"/>
+      <rect x="-7" y="-114" width="14" height="4" rx="1" fill="#d4b87a"/>
+      <rect x="-7" y="-106" width="14" height="4" rx="1" fill="#d4b87a"/>
+      <rect x="-7" y="-98" width="14" height="4" rx="1" fill="#d4b87a"/>
+    </g>
+    <!-- Sweet spot mark -->
+    <ellipse cx="0" cy="-40" rx="10" ry="18" fill="none" stroke="#c4a35a" stroke-width="1" opacity="0.3"/>
+  </g>
+
+  <!-- ===== CRICKET BALL ===== -->
+  <g filter="url(#dropShadow)">
+    <circle cx="310" cy="180" r="32" fill="url(#ballShine)"/>
+    <!-- Ball seam -->
+    <path d="M285 165 C295 185 305 195 310 200 C315 195 325 185 335 165" 
+          fill="none" stroke="#fff" stroke-width="2" opacity="0.7"/>
+    <path d="M285 195 C295 175 305 165 310 160 C315 165 325 175 335 195" 
+          fill="none" stroke="#fff" stroke-width="2" opacity="0.7"/>
+    <!-- Seam stitches -->
+    <g stroke="#fff" stroke-width="1" opacity="0.4">
+      <line x1="288" y1="168" x2="290" y2="172"/>
+      <line x1="293" y1="176" x2="295" y2="180"/>
+      <line x1="298" y1="183" x2="300" y2="187"/>
+      <line x1="304" y1="189" x2="306" y2="193"/>
+      <line x1="314" y1="193" x2="316" y2="189"/>
+      <line x1="320" y1="187" x2="322" y2="183"/>
+      <line x1="325" y1="180" x2="327" y2="176"/>
+      <line x1="330" y1="172" x2="332" y2="168"/>
+    </g>
+    <!-- Ball highlight -->
+    <circle cx="300" cy="172" r="8" fill="#fff" opacity="0.15"/>
+  </g>
+
+  <!-- ===== STUMPS ===== -->
+  <g transform="translate(180,200)" opacity="0.9" filter="url(#dropShadow)">
+    <rect x="0" y="0" width="5" height="55" rx="1.5" fill="#e8d5a3"/>
+    <rect x="10" y="-2" width="5" height="57" rx="1.5" fill="#f0e4c4"/>
+    <rect x="20" y="0" width="5" height="55" rx="1.5" fill="#e8d5a3"/>
+    <!-- Bails -->
+    <rect x="-2" y="-4" width="13" height="3" rx="1.5" fill="url(#gold)"/>
+    <rect x="14" y="-4" width="13" height="3" rx="1.5" fill="url(#gold)"/>
+  </g>
+
+  <!-- ===== TEXT: BOX ===== -->
+  <g filter="url(#textShadow)">
+    <text x="256" y="350" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="82" fill="#fff" letter-spacing="6">BOX</text>
+  </g>
+
+  <!-- ===== TEXT: cric ===== -->
+  <g filter="url(#textShadow)">
+    <text x="256" y="410" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="62" fill="url(#red)" letter-spacing="4">cric</text>
+  </g>
+
+  <!-- ===== TAGLINE ===== -->
+  <text x="256" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-weight="600" font-size="14" fill="#fff" opacity="0.5" letter-spacing="4">CRICKET  SCORING</text>
+
+  <!-- ===== GOLD DIVIDER LINE ===== -->
+  <line x1="160" y1="420" x2="352" y2="420" stroke="url(#gold)" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- ===== STARS ===== -->
+  <g fill="url(#gold)" opacity="0.6">
+    <polygon points="256,458 259,466 268,466 261,471 264,480 256,475 248,480 251,471 244,466 253,466" transform="scale(0.7) translate(110,230)"/>
+    <polygon points="256,458 259,466 268,466 261,471 264,480 256,475 248,480 251,471 244,466 253,466" transform="scale(0.7) translate(145,230)"/>
+    <polygon points="256,458 259,466 268,466 261,471 264,480 256,475 248,480 251,471 244,466 253,466" transform="scale(0.7) translate(180,230)"/>
+  </g>
+</svg>

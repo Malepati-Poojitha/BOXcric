@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}BOXcric — Rankings{% endblock %}
+
+{% block content %}
+<h1 class="page-title">📊 Player Rankings</h1>
+
+<!-- Tabs -->
+<div class="tabs" id="rankTabs">
+  <button class="tab active" onclick="showRankTab('batting',this)">🏏 Batting</button>
+  <button class="tab" onclick="showRankTab('bowling',this)">🎯 Bowling</button>
+  <button class="tab" onclick="showRankTab('allrounder',this)">⭐ All-Rounder</button>
+</div>
+
+<div id="rankContent">
+  <div class="loading-center"><div class="spinner"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var rankData = {};
+var currentTab = 'batting';
+
+document.addEventListener('DOMContentLoaded', function() {
+  api('/api/rankings/').then(function(data) {
+    rankData = data || {};
+    showRankTab('batting', document.querySelector('#rankTabs .tab'));
+  });
+});
+
+function showRankTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('#rankTabs .tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  renderRankings();
+}
+
+function renderRankings() {
+  var container = document.getElementById('rankContent');
+  var list = rankData[currentTab] || [];
+
+  if (!list.length) {
+    container.innerHTML = emptyState('📊', 'No rankings yet', 'Complete some matches to see rankings.');
+    return;
+  }
+
+  var html = '';
+
+  if (currentTab === 'batting') {
+    // Top 3 podium
+    html += renderPodium(list.slice(0, 3), 'runs', 'Runs');
+    // Table
+    html += '<div class="card mt-4"><div class="card-body" style="overflow-x:auto">';
+    html += '<table class="scorecard-table"><thead><tr>';
+    html += '<th>#</th><th>Player</th><th>M</th><th>Inn</th><th>Runs</th><th>HS</th><th>Avg</th><th>SR</th><th>4s</th><th>6s</th><th>50s</th><th>100s</th><th>Rating</th>';
+    html += '</tr></thead><tbody>';
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i];
+      html += '<tr' + (i < 3 ? ' style="background:' + ['#fef9c3','#f0f0f0','#fde8d0'][i] + '"' : '') + '>';
+      html += '<td><strong>' + r.rank + '</strong></td>';
+      html += '<td><span class="batter-name">' + esc(r.player_name) + '</span></td>';
+      html += '<td>' + r.matches + '</td><td>' + r.innings + '</td>';
+      html += '<td><strong>' + r.runs + '</strong></td><td>' + r.highest_score + '</td>';
+      html += '<td>' + r.average + '</td><td>' + r.strike_rate + '</td>';
+      html += '<td>' + r.fours + '</td><td>' + r.sixes + '</td>';
+      html += '<td>' + r.fifties + '</td><td>' + r.hundreds + '</td>';
+      html += '<td><span style="background:var(--primary);color:#fff;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700">' + r.rating + '</span></td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table></div></div>';
+
+  } else if (currentTab === 'bowling') {
+    html += renderPodium(list.slice(0, 3), 'wickets', 'Wkts');
+    html += '<div class="card mt-4"><div class="card-body" style="overflow-x:auto">';
+    html += '<table class="scorecard-table"><thead><tr>';
+    html += '<th>#</th><th>Player</th><th>M</th><th>Inn</th><th>Wkts</th><th>Overs</th><th>Runs</th><th>Eco</th><th>Avg</th><th>SR</th><th>Best</th><th>3W</th><th>Rating</th>';
+    html += '</tr></thead><tbody>';
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i];
+      html += '<tr' + (i < 3 ? ' style="background:' + ['#fef9c3','#f0f0f0','#fde8d0'][i] + '"' : '') + '>';
+      html += '<td><strong>' + r.rank + '</strong></td>';
+      html += '<td><span class="batter-name">' + esc(r.player_name) + '</span></td>';
+      html += '<td>' + r.matches + '</td><td>' + r.innings + '</td>';
+      html += '<td><strong>' + r.wickets + '</strong></td><td>' + r.overs + '</td>';
+      html += '<td>' + r.runs_conceded + '</td><td>' + r.economy + '</td>';
+      html += '<td>' + r.average + '</td><td>' + r.strike_rate + '</td>';
+      html += '<td>' + r.best_bowling + '</td><td>' + r.three_wickets + '</td>';
+      html += '<td><span style="background:var(--primary);color:#fff;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700">' + r.rating + '</span></td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table></div></div>';
+
+  } else {
+    html += renderPodium(list.slice(0, 3), 'rating', 'Rating');
+    html += '<div class="card mt-4"><div class="card-body" style="overflow-x:auto">';
+    html += '<table class="scorecard-table"><thead><tr>';
+    html += '<th>#</th><th>Player</th><th>M</th><th>Runs</th><th>Bat Avg</th><th>Bat SR</th><th>Wkts</th><th>Bowl Eco</th><th>Bowl Avg</th><th>Bat Rtg</th><th>Bowl Rtg</th><th>Rating</th>';
+    html += '</tr></thead><tbody>';
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i];
+      html += '<tr' + (i < 3 ? ' style="background:' + ['#fef9c3','#f0f0f0','#fde8d0'][i] + '"' : '') + '>';
+      html += '<td><strong>' + r.rank + '</strong></td>';
+      html += '<td><span class="batter-name">' + esc(r.player_name) + '</span></td>';
+      html += '<td>' + r.matches + '</td>';
+      html += '<td>' + r.runs + '</td><td>' + r.batting_avg + '</td><td>' + r.batting_sr + '</td>';
+      html += '<td>' + r.wickets + '</td><td>' + r.bowling_eco + '</td><td>' + r.bowling_avg + '</td>';
+      html += '<td>' + r.bat_rating + '</td><td>' + r.bowl_rating + '</td>';
+      html += '<td><span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700">' + r.rating + '</span></td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table></div></div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function renderPodium(top3, valueKey, label) {
+  if (!top3.length) return '';
+  var medals = ['🥇','🥈','🥉'];
+  var colors = ['linear-gradient(135deg,#f5d442,#e8b923)','linear-gradient(135deg,#c0c0c0,#a8a8a8)','linear-gradient(135deg,#cd7f32,#b5651d)'];
+  var h = '<div style="display:flex;gap:12px;justify-content:center;align-items:flex-end;margin:20px 0">';
+  var order = top3.length >= 3 ? [1,0,2] : (top3.length >= 2 ? [1,0] : [0]);
+  for (var oi = 0; oi < order.length; oi++) {
+    var idx = order[oi];
+    if (idx >= top3.length) continue;
+    var p = top3[idx];
+    var isFirst = idx === 0;
+    var height = isFirst ? '140px' : (idx === 1 ? '115px' : '95px');
+    h += '<div style="text-align:center;width:' + (isFirst ? '120px' : '100px') + '">';
+    h += '<div style="font-size:' + (isFirst ? '32px' : '24px') + '">' + medals[idx] + '</div>';
+    h += '<div style="font-size:13px;font-weight:700;margin:4px 0;color:var(--text)">' + esc(p.player_name) + '</div>';
+    h += '<div style="background:' + colors[idx] + ';border-radius:8px 8px 0 0;height:' + height + ';display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:800">';
+    h += '<div style="font-size:' + (isFirst ? '28px' : '22px') + '">' + p[valueKey] + '</div>';
+    h += '<div style="font-size:10px;opacity:0.8">' + label + '</div>';
+    h += '</div></div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}BOXcric — New Match{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Create New Match</h1>
+
+<div class="card" style="max-width:600px">
+  <div class="card-body">
+    <div class="form-group">
+      <label>Match Title (optional)</label>
+      <input type="text" id="matchTitle" placeholder="e.g., Sunday League - Match 5">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Team 1 *</label>
+        <select id="team1Select"><option value="">— Select —</option></select>
+      </div>
+      <div class="form-group">
+        <label>Team 2 *</label>
+        <select id="team2Select"><option value="">— Select —</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Overs</label>
+        <input type="number" id="matchOvers" value="20" min="1" max="50">
+      </div>
+      <div class="form-group">
+        <label>Venue</label>
+        <input type="text" id="matchVenue" placeholder="e.g., Local Ground">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Date</label>
+      <input type="datetime-local" id="matchDate">
+    </div>
+    <button class="btn btn-primary btn-lg btn-block mt-4" onclick="createMatch()">Create Match</button>
+  </div>
+</div>
+
+<div class="mt-6">
+  <h2 class="section-title">Don't see your team?</h2>
+  <p class="text-sm text-muted mb-4">Create teams and add players first, then come back to create a match.</p>
+  <div class="flex gap-2">
+    <a href="/admin/teams" class="btn btn-outline btn-sm">Manage Teams</a>
+    <a href="/admin/players" class="btn btn-outline btn-sm">Manage Players</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const teams = await api('/teams/');
+  const s1 = el('team1Select'), s2 = el('team2Select');
+  teams.forEach(t => {
+    s1.innerHTML += `<option value="${t.id}">${t.name}${t.short_name ? ' ('+t.short_name+')' : ''}</option>`;
+    s2.innerHTML += `<option value="${t.id}">${t.name}${t.short_name ? ' ('+t.short_name+')' : ''}</option>`;
+  });
+});
+
+async function createMatch() {
+  const t1 = parseInt(el('team1Select').value);
+  const t2 = parseInt(el('team2Select').value);
+  if (!t1 || !t2) { toast('Select both teams!', 'error'); return; }
+  if (t1 === t2) { toast('Teams must be different!', 'error'); return; }
+
+  const payload = {
+    title: el('matchTitle').value || null,
+    team1_id: t1,
+    team2_id: t2,
+    overs: parseInt(el('matchOvers').value) || 20,
+    venue: el('matchVenue').value || null,
+    date: el('matchDate').value ? new Date(el('matchDate').value).toISOString() : null
+  };
+
+  const result = await api('/matches/', 'POST', payload);
+  if (result && result.id) {
+    toast('Match created!', 'success');
+    setTimeout(() => { window.location.href = `/admin/match/${result.id}`; }, 500);
+  } else {
+    toast(result?.detail || 'Error creating match', 'error');
+  }
+}
+</script>
+{% endblock %}

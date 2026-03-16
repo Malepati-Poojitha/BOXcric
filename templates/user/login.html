@@ -1,0 +1,480 @@
+{% extends "user/base.html" %}
+{% block title %}BOXcric — Login{% endblock %}
+
+{% block content %}
+<!-- Firebase SDK (loaded only on login page) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<div style="max-width:420px;margin:40px auto">
+  <div class="text-center mb-4">
+    <img src="/static/images/logo.svg" alt="BOXcric" style="width:100px;height:100px;border-radius:20px;margin:0 auto">
+    <h1 class="page-title" style="margin-top:8px">Welcome to BOXcric</h1>
+    <p class="text-muted text-sm">Cricket scoring & stats for your matches</p>
+  </div>
+
+  <!-- OTP LOGIN (only login method) -->
+  <div id="panelOtp" class="card">
+    <div class="card-body">
+
+      <!-- Step 1: Enter phone -->
+      <div id="otpStep1">
+        <div class="text-center mb-4">
+          <div style="font-size:36px">📱</div>
+          <p class="text-sm text-muted mt-2">Enter your registered phone number to get OTP via SMS</p>
+        </div>
+        <div class="form-group">
+          <label>Phone Number (with country code)</label>
+          <input type="tel" id="otpPhone" placeholder="+91 9876543210" inputmode="tel">
+        </div>
+        <!-- reCAPTCHA container (invisible, required by Firebase) -->
+        <div id="recaptcha-container"></div>
+        <button class="btn btn-primary btn-lg btn-block mt-4" onclick="sendOtp()">Send OTP via SMS</button>
+      </div>
+
+      <!-- Step 2: Enter OTP -->
+      <div id="otpStep2" style="display:none">
+        <div class="text-center mb-4">
+          <div style="font-size:36px">🔐</div>
+          <p class="text-sm" style="color:#2d6a4f;font-weight:600" id="otpMsg">OTP sent via SMS!</p>
+        </div>
+        <div id="otpBanner" style="display:none;background:#0d2818;color:#fff;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px">
+          <div style="font-size:12px;opacity:0.7">Your OTP is</div>
+          <div id="otpCode" style="font-size:32px;font-weight:800;letter-spacing:8px;margin:4px 0"></div>
+          <div style="font-size:12px;opacity:0.5">Expires in 5 minutes</div>
+        </div>
+        <div class="form-group">
+          <label>Enter OTP</label>
+          <input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" style="font-size:24px;text-align:center;letter-spacing:8px;font-weight:700">
+        </div>
+        <button class="btn btn-primary btn-lg btn-block mt-4" onclick="verifyOtp()">Login</button>
+        <p class="text-center mt-4">
+          <a href="javascript:void(0)" onclick="sendOtp()" style="color:#e63946;font-size:13px;font-weight:600">Resend OTP</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- REGISTER (new user) -->
+  <div id="panelRegister" class="card" style="display:none">
+    <div class="card-body">
+      <div class="text-center mb-4">
+        <div style="font-size:36px">🏏</div>
+        <p class="text-sm text-muted">Create your BOXcric account</p>
+      </div>
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="regName" placeholder="Your name">
+      </div>
+      <div class="form-group">
+      <div class="form-group">
+        <label>Phone * <span style="font-weight:400;color:#6c757d">(used for OTP login)</span></label>
+        <input type="tel" id="regPhone" placeholder="Phone number" inputmode="tel">
+      </div>
+      <div class="form-group">
+        <label>Password *</label>
+        <input type="password" id="regPassword" placeholder="Min 4 characters">
+      </div>
+      <button class="btn btn-primary btn-lg btn-block mt-4" onclick="doRegister()">Create Account</button>
+      <p class="text-center text-sm text-muted mt-4">
+        Already registered? <a href="javascript:void(0)" onclick="switchTo('otp')" style="color:#1a472a;font-weight:600">Login via OTP</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- PROFILE SETUP (shown after registration) -->
+  <div id="panelProfile" class="card" style="display:none">
+    <div class="card-body">
+      <div class="text-center mb-4">
+        <div style="font-size:36px">🎉</div>
+        <h2 style="font-size:18px;font-weight:700;margin-top:8px">Complete Your Profile</h2>
+        <p class="text-sm text-muted">Tell us about your cricket skills</p>
+      </div>
+
+      <!-- Photo Upload -->
+      <div class="text-center mb-4">
+        <div id="photoPreview" style="width:80px;height:80px;border-radius:50%;background:#e5e7eb;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;border:3px solid #1a472a">
+          <span id="photoPlaceholder">📷</span>
+          <img id="photoImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
+        </div>
+        <label style="cursor:pointer">
+          <span class="btn btn-outline btn-sm">Upload Photo</span>
+          <input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="previewPhoto(this)">
+        </label>
+      </div>
+
+      <!-- Age & Height -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="profAge" placeholder="e.g. 25" min="10" max="80">
+        </div>
+        <div class="form-group">
+          <label>Height</label>
+          <input type="text" id="profHeight" placeholder="e.g. 5'9&quot;">
+        </div>
+      </div>
+
+      <!-- Gender -->
+      <div class="form-group">
+        <label>Gender</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-outline btn-block" id="genderMale" onclick="pickOpt('gender','male')" style="flex:1">👨 Male</button>
+          <button type="button" class="btn btn-outline btn-block" id="genderFemale" onclick="pickOpt('gender','female')" style="flex:1">👩 Female</button>
+          <button type="button" class="btn btn-outline btn-block" id="genderOther" onclick="pickOpt('gender','other')" style="flex:1">🧑 Other</button>
+        </div>
+      </div>
+
+      <!-- Batting Hand -->
+      <div class="form-group">
+        <label>Batting Hand</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-outline btn-block" id="batRight" onclick="pickOpt('bat','right')" style="flex:1">🫱 Right Hand</button>
+          <button type="button" class="btn btn-outline btn-block" id="batLeft" onclick="pickOpt('bat','left')" style="flex:1">🫲 Left Hand</button>
+        </div>
+      </div>
+
+      <!-- Playing Role -->
+      <div class="form-group">
+        <label>Playing Role</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm" id="roleBatsman" onclick="pickOpt('role','batsman')" style="padding:12px 8px">🏏 Batsman</button>
+          <button type="button" class="btn btn-outline btn-sm" id="roleBowler" onclick="pickOpt('role','bowler')" style="padding:12px 8px">🎯 Bowler</button>
+          <button type="button" class="btn btn-outline btn-sm" id="roleAllrounder" onclick="pickOpt('role','allrounder')" style="padding:12px 8px">⭐ All-Rounder</button>
+          <button type="button" class="btn btn-outline btn-sm" id="roleWk_batsman" onclick="pickOpt('role','wk_batsman')" style="padding:12px 8px">🧤 WK-Batsman</button>
+        </div>
+      </div>
+
+      <!-- Bowling Hand -->
+      <div class="form-group">
+        <label>Bowling Hand</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-outline btn-block" id="bowlRight" onclick="pickOpt('bowl','right')" style="flex:1">🫱 Right</button>
+          <button type="button" class="btn btn-outline btn-block" id="bowlLeft" onclick="pickOpt('bowl','left')" style="flex:1">🫲 Left</button>
+          <button type="button" class="btn btn-outline btn-block" id="bowlNone" onclick="pickOpt('bowl','none')" style="flex:1">❌ None</button>
+        </div>
+      </div>
+
+      <!-- Bowling Type -->
+      <div class="form-group" id="bowlTypeGroup">
+        <label>Bowling Type</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm" id="typefast" onclick="pickOpt('type','fast')">🔥 Fast</button>
+          <button type="button" class="btn btn-outline btn-sm" id="typemedium" onclick="pickOpt('type','medium')">💨 Medium</button>
+          <button type="button" class="btn btn-outline btn-sm" id="typeoffspin" onclick="pickOpt('type','offspin')">🌀 Off Spin</button>
+          <button type="button" class="btn btn-outline btn-sm" id="typelegspin" onclick="pickOpt('type','legspin')">🔄 Leg Spin</button>
+          <button type="button" class="btn btn-outline btn-sm" id="typeorthodox" onclick="pickOpt('type','orthodox')">⚡ Orthodox</button>
+          <button type="button" class="btn btn-outline btn-sm" id="typechinaman" onclick="pickOpt('type','chinaman')">🎯 Chinaman</button>
+          <button type="button" class="btn btn-outline btn-sm" id="typeslowthrow" onclick="pickOpt('type','slow_throw')">🐢 Slow Throw</button>
+          <button type="button" class="btn btn-outline btn-sm" id="typespinthrow" onclick="pickOpt('type','spin_throw')">🌪️ Spin Throw</button>
+          <button type="button" class="btn btn-outline btn-sm" id="typefastthrow" onclick="pickOpt('type','fast_throw')" style="grid-column:1/-1">🚀 Fast Throw</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-lg btn-block mt-4" onclick="saveProfile()">Save Profile</button>
+      <p class="text-center mt-2">
+        <a href="javascript:void(0)" onclick="window.location.href='/app'" style="color:#6c757d;font-size:13px">Skip for now →</a>
+      </p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var otpPhone = '';
+var profileBat = '';
+var profileBowl = '';
+var profileType = '';
+var profileGender = '';
+var profileRole = '';
+
+function switchTo(tab) {
+  document.getElementById('panelOtp').style.display = 'none';
+  document.getElementById('panelRegister').style.display = 'none';
+  document.getElementById('panelProfile').style.display = 'none';
+
+  var dk = document.documentElement.getAttribute('data-theme') === 'dark';
+  var activeColor = dk ? '#34d399' : '#1a472a';
+  var inactiveColor = dk ? '#8899a6' : '#6c757d';
+
+  document.getElementById('panelOtp').style.display = 'none';
+  var regPanel = document.getElementById('panelRegister');
+  if (regPanel) regPanel.style.display = 'none';
+  var profPanel = document.getElementById('panelProfile');
+  if (profPanel) profPanel.style.display = 'none';
+
+  if (tab === 'otp') {
+    document.getElementById('panelOtp').style.display = 'block';
+    document.getElementById('otpStep1').style.display = 'block';
+    document.getElementById('otpStep2').style.display = 'none';
+  } else if (tab === 'profile') {
+    if (profPanel) profPanel.style.display = 'block';
+  }
+}
+
+// ===== FIREBASE PHONE AUTH INIT =====
+var firebaseApp = null;
+var firebaseAuth = null;
+var firebaseConfirmation = null;
+
+function initFirebase() {
+  if (typeof FIREBASE_ENABLED !== 'undefined' && FIREBASE_ENABLED && typeof FIREBASE_CONFIG !== 'undefined') {
+    try {
+      // Firebase Phone Auth only works on localhost or HTTPS domains
+      var host = window.location.hostname;
+      if (host !== 'localhost' && host !== '127.0.0.1' && !window.location.protocol.startsWith('https')) {
+        console.log('Firebase Phone Auth requires localhost or HTTPS. Using fallback OTP.');
+        return false;
+      }
+      firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+      firebaseAuth = firebase.auth();
+      firebaseAuth.languageCode = 'en';
+      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        size: 'invisible',
+        callback: function() {}
+      });
+      console.log('Firebase Phone Auth initialized!');
+      return true;
+    } catch(e) {
+      console.log('Firebase init failed:', e);
+      return false;
+    }
+  }
+  return false;
+}
+
+// ===== OTP LOGIN =====
+function sendOtp() {
+  var phone = document.getElementById('otpPhone').value.trim();
+  if (!phone) { toast('Enter your phone number', 'error'); return; }
+
+  // Add +91 if no country code
+  if (!phone.startsWith('+')) {
+    phone = '+91' + phone.replace(/^0/, '');
+  }
+  // Store clean phone (without +91) for our backend
+  var cleanPhone = phone.replace(/^\+91/, '').replace(/^\+/, '');
+  otpPhone = cleanPhone;
+
+  // Try Firebase first
+  if (firebaseAuth && window.recaptchaVerifier) {
+    toast('Sending SMS...', 'info');
+    firebaseAuth.signInWithPhoneNumber(phone, window.recaptchaVerifier)
+      .then(function(confirmationResult) {
+        firebaseConfirmation = confirmationResult;
+        document.getElementById('otpMsg').textContent = 'OTP sent via SMS to ' + phone;
+        document.getElementById('otpBanner').style.display = 'none';
+        document.getElementById('otpStep1').style.display = 'none';
+        document.getElementById('otpStep2').style.display = 'block';
+        document.getElementById('otpInput').focus();
+        toast('OTP sent via SMS! Check your phone 📱', 'success');
+      })
+      .catch(function(error) {
+        console.log('Firebase SMS error:', error);
+        // Fall back to our own OTP system
+        toast('SMS unavailable, using app OTP', 'info');
+        sendOtpFallback(cleanPhone);
+      });
+    return;
+  }
+
+  // Fallback: our own OTP system (shows OTP on screen)
+  sendOtpFallback(cleanPhone);
+}
+
+function sendOtpFallback(cleanPhone) {
+  api('/api/user/forgot-password', 'POST', { phone: cleanPhone }).then(function(res) {
+    if (res && res.otp_preview) {
+      document.getElementById('otpMsg').textContent = 'OTP for ' + cleanPhone + ' (' + res.user_name + ')';
+      document.getElementById('otpCode').textContent = res.otp_preview;
+      document.getElementById('otpBanner').style.display = 'block';
+      document.getElementById('otpStep1').style.display = 'none';
+      document.getElementById('otpStep2').style.display = 'block';
+      document.getElementById('otpInput').focus();
+      toast('OTP generated!', 'success');
+    } else {
+      toast(res && res.detail ? res.detail : 'Phone not found. Register first!', 'error');
+    }
+  });
+}
+
+function verifyOtp() {
+  var otp = document.getElementById('otpInput').value.trim();
+  if (!otp || otp.length !== 6) { toast('Enter 6-digit OTP', 'error'); return; }
+
+  // If Firebase was used, verify with Firebase first
+  if (firebaseConfirmation) {
+    toast('Verifying...', 'info');
+    firebaseConfirmation.confirm(otp)
+      .then(function(result) {
+        // Firebase verified! Now login with our backend
+        loginWithPhone(otpPhone);
+      })
+      .catch(function(error) {
+        toast('Invalid OTP. Try again.', 'error');
+      });
+    return;
+  }
+
+  // Fallback: our own OTP verification
+  api('/api/user/verify-otp', 'POST', { phone: otpPhone, otp: otp }).then(function(res) {
+    if (res && res.access_token) {
+      toast('Welcome back!', 'success');
+      if (res.user && !res.user.profile_complete) {
+        setTimeout(function() { window.location.href = '/app/profile'; }, 500);
+      } else {
+        setTimeout(function() { window.location.href = '/app'; }, 500);
+      }
+    } else {
+      toast(res && res.detail ? res.detail : 'Invalid OTP', 'error');
+    }
+  });
+}
+
+function loginWithPhone(phone) {
+  // After Firebase OTP verified, generate a server OTP and auto-verify it
+  api('/api/user/forgot-password', 'POST', { phone: phone }).then(function(res) {
+    if (res && res.otp_preview) {
+      // Auto-verify with the server OTP
+      api('/api/user/verify-otp', 'POST', { phone: phone, otp: res.otp_preview }).then(function(res2) {
+        if (res2 && res2.access_token) {
+          toast('Welcome back!', 'success');
+          if (res2.user && !res2.user.profile_complete) {
+            setTimeout(function() { window.location.href = '/app/profile'; }, 500);
+          } else {
+            setTimeout(function() { window.location.href = '/app'; }, 500);
+          }
+        } else {
+          toast('Login failed', 'error');
+        }
+      });
+    } else {
+      toast(res && res.detail ? res.detail : 'Account not found. Register first!', 'error');
+    }
+  });
+}
+
+// Initialize Firebase on page load
+document.addEventListener('DOMContentLoaded', function() {
+  initFirebase();
+});
+
+// ===== REGISTER =====
+function doRegister() {
+  var name = document.getElementById('regName').value.trim();
+  var phone = document.getElementById('regPhone').value.trim();
+  var password = document.getElementById('regPassword').value;
+
+  if (!name || !password) { toast('Fill in required fields', 'error'); return; }
+  if (!phone) { toast('Phone is required for OTP login', 'error'); return; }
+  if (password.length < 4) { toast('Password: min 4 characters', 'error'); return; }
+
+  var email = phone + '@boxcric.local';
+
+  api('/api/user/register', 'POST', { name: name, email: email, phone: phone, password: password }).then(function(res) {
+    if (res && res.access_token) {
+      toast('Account created! Set up your profile', 'success');
+      localStorage.setItem('boxcric_registered', '1');
+      switchTo('profile');
+    } else {
+      toast(res && res.detail ? res.detail : 'Registration failed', 'error');
+    }
+  });
+}
+
+// ===== PROFILE SETUP =====
+function previewPhoto(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('photoImg').src = e.target.result;
+      document.getElementById('photoImg').style.display = 'block';
+      document.getElementById('photoPlaceholder').style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function pickOpt(group, value) {
+  var configs = {
+    gender: { values: ['male','female','other'], prefix: 'gender', varName: 'profileGender' },
+    role: { values: ['batsman','bowler','allrounder','wk_batsman'], prefix: 'role', varName: 'profileRole' },
+    bat: { values: ['right','left'], prefix: 'bat', varName: 'profileBat' },
+    bowl: { values: ['right','left','none'], prefix: 'bowl', varName: 'profileBowl' },
+    type: { values: ['fast','medium','offspin','legspin','orthodox','chinaman','slow_throw','spin_throw','fast_throw'], prefix: 'type', varName: 'profileType' }
+  };
+
+  var cfg = configs[group];
+  if (!cfg) return;
+
+  // Set variable
+  window[cfg.varName] = value;
+  if (group === 'gender') profileGender = value;
+  if (group === 'role') profileRole = value;
+  if (group === 'bat') profileBat = value;
+  if (group === 'bowl') profileBowl = value;
+  if (group === 'type') profileType = value;
+
+  // Update button styles — selected = green box via CSS class
+  for (var i = 0; i < cfg.values.length; i++) {
+    var v = cfg.values[i];
+    var id = cfg.prefix + v.charAt(0).toUpperCase() + v.slice(1);
+    if (group === 'type') id = 'type' + v;
+    var el = document.getElementById(id);
+    if (el) {
+      if (v === value) {
+        el.classList.add('selected-opt');
+      } else {
+        el.classList.remove('selected-opt');
+      }
+    }
+  }
+
+  // Toggle bowling type visibility
+  if (group === 'bowl') {
+    var tg = document.getElementById('bowlTypeGroup');
+    if (tg) tg.style.display = value === 'none' ? 'none' : 'block';
+  }
+}
+
+function saveProfile() {
+  var age = document.getElementById('profAge').value;
+  var height = document.getElementById('profHeight').value.trim();
+
+  var photoFile = document.getElementById('photoFile').files[0];
+  var photoPromise;
+
+  if (photoFile) {
+    var formData = new FormData();
+    formData.append('photo', photoFile);
+    photoPromise = fetch('/api/user/photo', { method: 'POST', body: formData }).then(function(r) { return r.json(); });
+  } else {
+    photoPromise = Promise.resolve(null);
+  }
+
+  photoPromise.then(function() {
+    var profileData = {};
+    if (age) profileData.age = parseInt(age);
+    if (height) profileData.height = height;
+    if (profileBat) profileData.batting_hand = profileBat;
+    if (profileBowl) profileData.bowling_hand = profileBowl;
+    if (profileGender) profileData.gender = profileGender;
+    if (profileRole) profileData.player_role = profileRole;
+    if (profileType && profileBowl !== 'none') profileData.bowling_type = profileType;
+    if (profileBowl === 'none') profileData.bowling_type = 'none';
+
+    return api('/api/user/profile', 'POST', profileData);
+  }).then(function(res) {
+    if (res && res.id) {
+      toast('Profile saved! Welcome to BOXcric 🏏', 'success');
+      setTimeout(function() { window.location.href = '/app'; }, 800);
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed to save', 'error');
+    }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}BOXcric — Manage Users{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+  <h1 class="page-title">👥 Registered Users</h1>
+  <div class="text-sm text-muted" id="userCount"></div>
+</div>
+
+<div id="usersList">
+  <div class="loading-center"><div class="spinner"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var users = [];
+
+document.addEventListener('DOMContentLoaded', function() { loadUsers(); });
+
+function loadUsers() {
+  api('/api/user/all').then(function(data) {
+    users = data || [];
+    document.getElementById('userCount').textContent = users.length + ' user' + (users.length !== 1 ? 's' : '');
+    renderUsers();
+  });
+}
+
+function renderUsers() {
+  var container = document.getElementById('usersList');
+  if (!users.length) {
+    container.innerHTML = emptyState('👥', 'No registered users', 'Users will appear here after they register.');
+    return;
+  }
+
+  var html = '<div class="card"><div class="card-body" style="overflow-x:auto;padding:0">';
+  html += '<table class="scorecard-table"><thead><tr>';
+  html += '<th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Gender</th><th>Bat</th><th>Bowl</th><th>Joined</th><th>Action</th>';
+  html += '</tr></thead><tbody>';
+
+  for (var i = 0; i < users.length; i++) {
+    var u = users[i];
+    var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+    var joined = u.created_at ? new Date(u.created_at).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : '-';
+
+    html += '<tr>';
+    html += '<td>' + u.id + '</td>';
+    html += '<td>';
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    if (u.photo) {
+      html += '<img src="' + esc(u.photo) + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover">';
+    } else {
+      html += '<div style="width:32px;height:32px;border-radius:50%;background:var(--primary-light);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">' + initials + '</div>';
+    }
+    html += '<div>';
+    html += '<div class="batter-name">' + esc(u.name) + '</div>';
+    if (u.age) html += '<div class="text-sm text-muted">Age ' + u.age + (u.height ? ' • ' + esc(u.height) : '') + '</div>';
+    html += '</div></div>';
+    html += '</td>';
+    html += '<td class="text-sm">' + esc(u.email) + '</td>';
+    html += '<td class="text-sm">' + (u.phone || '-') + '</td>';
+    html += '<td class="text-sm">' + (u.player_role ? capitalize(u.player_role) : '-') + '</td>';
+    html += '<td class="text-sm">' + (u.gender ? capitalize(u.gender) : '-') + '</td>';
+    html += '<td class="text-sm">' + (u.batting_hand ? capitalize(u.batting_hand) : '-') + '</td>';
+    html += '<td class="text-sm">' + (u.bowling_type && u.bowling_type !== 'none' ? capitalize(u.bowling_type) : '-') + '</td>';
+    html += '<td class="text-sm">' + joined + '</td>';
+    html += '<td><button class="btn btn-sm" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600" onclick="deleteUser(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">🗑 Delete</button></td>';
+    html += '</tr>';
+  }
+
+  html += '</tbody></table></div></div>';
+  container.innerHTML = html;
+}
+
+function deleteUser(id, name) {
+  if (!confirm('Delete user "' + name + '"? This cannot be undone.')) return;
+
+  api('/api/user/' + id, 'DELETE').then(function(res) {
+    if (res && res.detail) {
+      toast(res.detail, 'success');
+      loadUsers();
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed to delete', 'error');
+    }
+  });
+}
+
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : ''; }
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+</script>
+{% endblock %}

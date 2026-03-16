@@ -1,0 +1,221 @@
+{% extends "user/base.html" %}
+{% block title %}BOXcric — My Profile{% endblock %}
+
+{% block content %}
+{% if not user %}
+<div class="text-center mt-6">
+  <p class="text-muted">Please <a href="/app/login" style="color:var(--primary);font-weight:600">login</a> to view your profile.</p>
+</div>
+{% else %}
+<div style="max-width:520px;margin:0 auto">
+
+  <!-- Profile Header -->
+  <div class="card mb-4">
+    <div class="card-body text-center" style="padding:24px">
+      <div id="profilePhoto" style="width:90px;height:90px;border-radius:50%;margin:0 auto 12px;overflow:hidden;border:3px solid var(--primary);display:flex;align-items:center;justify-content:center;background:var(--primary-light);color:#fff;font-size:32px;font-weight:700">
+        {% if user.photo %}
+          <img src="{{ user.photo }}" style="width:100%;height:100%;object-fit:cover">
+        {% else %}
+          {{ user.name[:2]|upper }}
+        {% endif %}
+      </div>
+      <label style="cursor:pointer;display:inline-block;margin-bottom:8px">
+        <span class="btn btn-outline btn-sm">📷 Change Photo</span>
+        <input type="file" id="editPhoto" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="uploadNewPhoto(this)">
+      </label>
+      <h2 style="font-size:20px;font-weight:700;margin:4px 0">{{ user.name }}</h2>
+      <p class="text-sm text-muted">{{ user.email }}{% if user.phone %} • {{ user.phone }}{% endif %}</p>
+      <div class="mt-2" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        {% if user.player_role %}
+        <span style="background:var(--primary);color:#fff;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600">{{ user.player_role|replace('_',' ')|title }}</span>
+        {% endif %}
+        {% if user.batting_hand %}
+        <span style="background:var(--card-bg);border:1px solid var(--border);padding:3px 12px;border-radius:20px;font-size:12px">{{ user.batting_hand|title }} Hand Bat</span>
+        {% endif %}
+        {% if user.bowling_type and user.bowling_type != 'none' %}
+        <span style="background:var(--card-bg);border:1px solid var(--border);padding:3px 12px;border-radius:20px;font-size:12px">{{ user.bowling_type|replace('_',' ')|title }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Counter -->
+  <div class="card mb-4">
+    <div class="card-body" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div class="text-sm fw-bold">Profile Edits</div>
+        <div class="text-sm text-muted">{{ user.profile_edits }}/5 used{% if user.profile_edits >= 5 %} — Limit reached{% endif %}</div>
+      </div>
+      <div style="width:120px;height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:{{ (user.profile_edits / 5 * 100)|int }}%;background:{% if user.profile_edits >= 5 %}var(--accent){% elif user.profile_edits >= 3 %}#f59e0b{% else %}var(--primary){% endif %};border-radius:4px;transition:width 0.3s"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Details (editable) -->
+  <div class="card">
+    <div class="card-header"><span>Edit Profile</span></div>
+    <div class="card-body">
+
+      <!-- Always editable -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="edAge" value="{{ user.age or '' }}" placeholder="Age" min="10" max="80">
+        </div>
+        <div class="form-group">
+          <label>Height</label>
+          <input type="text" id="edHeight" value="{{ user.height or '' }}" placeholder="e.g. 5'9&quot;">
+        </div>
+      </div>
+
+      {% if user.profile_edits < 5 %}
+      <div class="text-sm text-muted mb-2" style="font-style:italic">Below fields count toward your 5 edit limit</div>
+
+      <!-- Gender -->
+      <div class="form-group">
+        <label>Gender</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm" id="edGenderMale" onclick="pick('gender','male')" style="flex:1{% if user.gender == 'male' %}{% endif %}">👨 Male</button>
+          <button type="button" class="btn btn-outline btn-sm" id="edGenderFemale" onclick="pick('gender','female')" style="flex:1{% if user.gender == 'female' %}{% endif %}">👩 Female</button>
+          <button type="button" class="btn btn-outline btn-sm" id="edGenderOther" onclick="pick('gender','other')" style="flex:1{% if user.gender == 'other' %}{% endif %}">🧑 Other</button>
+        </div>
+      </div>
+
+      <!-- Playing Role -->
+      <div class="form-group">
+        <label>Playing Role</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm{% if user.player_role == 'batsman' %} selected-opt{% endif %}" id="edRoleBatsman" onclick="pick('role','batsman')" style="padding:10px">🏏 Batsman</button>
+          <button type="button" class="btn btn-outline btn-sm{% if user.player_role == 'bowler' %} selected-opt{% endif %}" id="edRoleBowler" onclick="pick('role','bowler')" style="padding:10px">🎯 Bowler</button>
+          <button type="button" class="btn btn-outline btn-sm{% if user.player_role == 'allrounder' %} selected-opt{% endif %}" id="edRoleAllrounder" onclick="pick('role','allrounder')" style="padding:10px">⭐ All-Rounder</button>
+          <button type="button" class="btn btn-outline btn-sm{% if user.player_role == 'wk_batsman' %} selected-opt{% endif %}" id="edRoleWk_batsman" onclick="pick('role','wk_batsman')" style="padding:10px">🧤 WK-Batsman</button>
+        </div>
+      </div>
+
+      <!-- Batting Hand -->
+      <div class="form-group">
+        <label>Batting Hand</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm{% if user.batting_hand == 'right' %} selected-opt{% endif %}" id="edBatRight" onclick="pick('bat','right')" style="flex:1">🫱 Right</button>
+          <button type="button" class="btn btn-outline btn-sm{% if user.batting_hand == 'left' %} selected-opt{% endif %}" id="edBatLeft" onclick="pick('bat','left')" style="flex:1">🫲 Left</button>
+        </div>
+      </div>
+
+      <!-- Bowling Hand -->
+      <div class="form-group">
+        <label>Bowling Hand</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm{% if user.bowling_hand == 'right' %} selected-opt{% endif %}" id="edBowlRight" onclick="pick('bowl','right')" style="flex:1">🫱 Right</button>
+          <button type="button" class="btn btn-outline btn-sm{% if user.bowling_hand == 'left' %} selected-opt{% endif %}" id="edBowlLeft" onclick="pick('bowl','left')" style="flex:1">🫲 Left</button>
+          <button type="button" class="btn btn-outline btn-sm{% if user.bowling_hand == 'none' %} selected-opt{% endif %}" id="edBowlNone" onclick="pick('bowl','none')" style="flex:1">❌ None</button>
+        </div>
+      </div>
+
+      <!-- Bowling Type -->
+      <div class="form-group" id="edBowlTypeGroup" style="{% if user.bowling_hand == 'none' %}display:none{% endif %}">
+        <label>Bowling Type</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          {% for t, icon in [('fast','🔥'),('medium','💨'),('offspin','🌀'),('legspin','🔄'),('orthodox','⚡'),('chinaman','🎯'),('slow_throw','🐢'),('spin_throw','🌪️'),('fast_throw','🚀')] %}
+          <button type="button" class="btn btn-outline btn-sm{% if user.bowling_type == t %} selected-opt{% endif %}" id="edType{{ t }}" onclick="pick('type','{{ t }}')">{{ icon }} {{ t|replace('_',' ')|title }}</button>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% else %}
+      <div class="text-center mt-4" style="background:#fef2f2;padding:16px;border-radius:8px">
+        <p class="text-sm" style="color:var(--accent);font-weight:600">⚠️ Profile edit limit reached (5/5)</p>
+        <p class="text-sm text-muted">You can only update age, height, and photo.</p>
+      </div>
+      {% endif %}
+
+      <button class="btn btn-primary btn-lg btn-block mt-4" onclick="saveProfile()">Save Changes</button>
+    </div>
+  </div>
+
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+var edGender = '{{ user.gender or "" }}';
+var edRole = '{{ user.player_role or "" }}';
+var edBat = '{{ user.batting_hand or "" }}';
+var edBowl = '{{ user.bowling_hand or "" }}';
+var edType = '{{ user.bowling_type or "" }}';
+
+function pick(group, value) {
+  var groups = {
+    gender: { variable: 'edGender', values: ['male','female','other'], prefix: 'edGender' },
+    role: { variable: 'edRole', values: ['batsman','bowler','allrounder','wk_batsman'], prefix: 'edRole' },
+    bat: { variable: 'edBat', values: ['right','left'], prefix: 'edBat' },
+    bowl: { variable: 'edBowl', values: ['right','left','none'], prefix: 'edBowl' },
+    type: { variable: 'edType', values: ['fast','medium','offspin','legspin','orthodox','chinaman','slow_throw','spin_throw','fast_throw'], prefix: 'edType' }
+  };
+
+  var cfg = groups[group];
+  if (!cfg) return;
+
+  // Set variable
+  window[cfg.variable] = value;
+
+  // Toggle selected-opt class
+  cfg.values.forEach(function(v) {
+    var id = cfg.prefix + (group === 'type' ? v : v.charAt(0).toUpperCase() + v.slice(1));
+    var el = document.getElementById(id);
+    if (el) {
+      if (v === value) {
+        el.classList.add('selected-opt');
+      } else {
+        el.classList.remove('selected-opt');
+      }
+    }
+  });
+
+  // Toggle bowling type visibility
+  if (group === 'bowl') {
+    var tg = document.getElementById('edBowlTypeGroup');
+    if (tg) tg.style.display = value === 'none' ? 'none' : 'block';
+  }
+}
+
+function saveProfile() {
+  var data = {};
+  var age = document.getElementById('edAge').value;
+  var height = document.getElementById('edHeight').value.trim();
+  if (age) data.age = parseInt(age);
+  if (height) data.height = height;
+  if (edGender) data.gender = edGender;
+  if (edRole) data.player_role = edRole;
+  if (edBat) data.batting_hand = edBat;
+  if (edBowl) data.bowling_hand = edBowl;
+  if (edType && edBowl !== 'none') data.bowling_type = edType;
+  if (edBowl === 'none') data.bowling_type = 'none';
+
+  api('/api/user/profile', 'POST', data).then(function(res) {
+    if (res && res.id) {
+      toast('Profile updated!', 'success');
+      setTimeout(function() { window.location.href = '/app'; }, 800);
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed to save', 'error');
+    }
+  });
+}
+
+function uploadNewPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  var fd = new FormData();
+  fd.append('photo', input.files[0]);
+  toast('Uploading...', 'info');
+  fetch('/api/user/photo', { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(res) {
+    if (res && res.id) {
+      toast('Photo updated!', 'success');
+      setTimeout(function() { window.location.reload(); }, 500);
+    } else {
+      toast(res && res.detail ? res.detail : 'Upload failed', 'error');
+    }
+  });
+}
+</script>
+{% endblock %}

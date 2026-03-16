@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}BOXcric — Teams{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+  <h1 class="page-title">Teams</h1>
+  <button class="btn btn-primary btn-sm" onclick="showAddTeam()">+ Create Team</button>
+</div>
+
+<div class="team-grid" id="teamGrid">
+  <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+</div>
+
+<!-- Team Detail Modal -->
+<div class="modal-backdrop" id="teamDetailModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h3 id="teamDetailName">Team</h3>
+      <button class="modal-close" onclick="el('teamDetailModal').classList.remove('open')">&times;</button>
+    </div>
+    <div class="modal-body" id="teamDetailBody"></div>
+  </div>
+</div>
+
+<!-- Add Team Modal -->
+<div class="modal-backdrop" id="addTeamModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Create Team</h3>
+      <button class="modal-close" onclick="el('addTeamModal').classList.remove('open')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Team Name *</label>
+        <input type="text" id="tName" placeholder="e.g., BOX Warriors">
+      </div>
+      <div class="form-group">
+        <label>Short Name</label>
+        <input type="text" id="tShortName" placeholder="e.g., BXW" maxlength="10">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="el('addTeamModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTeam()">Create Team</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allTeams = [];
+let allPlayers = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  [allTeams, allPlayers] = await Promise.all([api('/teams/'), api('/players/')]);
+  renderTeams();
+});
+
+function renderTeams() {
+  if (!allTeams.length) {
+    el('teamGrid').innerHTML = emptyState('⛳', 'No teams yet', 'Create your first team to get started.');
+    return;
+  }
+  el('teamGrid').innerHTML = allTeams.map(t => {
+    const short = t.short_name || t.name.slice(0, 3).toUpperCase();
+    return `<div class="team-card" onclick="viewTeamDetail(${t.id})">
+      <div class="team-card-header">
+        <div class="team-logo">${short}</div>
+        <div><div class="team-name">${t.name}</div></div>
+      </div>
+      <div class="team-card-body">
+        <div class="text-sm text-muted mb-2">${t.players.length} player${t.players.length !== 1 ? 's' : ''}</div>
+        <ul class="team-player-list">
+          ${t.players.map(p => `<li class="team-player-chip">${p.name}</li>`).join('')}
+          ${!t.players.length ? '<li class="text-sm text-muted">No players added yet</li>' : ''}
+        </ul>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function viewTeamDetail(tid) {
+  const team = allTeams.find(t => t.id === tid);
+  if (!team) return;
+  el('teamDetailName').textContent = team.name;
+
+  let h = `<div class="text-sm text-muted mb-4">${team.short_name ? team.short_name + ' • ' : ''}${team.players.length} players</div>`;
+
+  // Current players
+  h += `<h4 style="font-size:13px;text-transform:uppercase;color:var(--text-light);margin-bottom:8px">Squad</h4>`;
+  if (team.players.length) {
+    h += `<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px">`;
+    team.players.forEach(p => {
+      h += `<div class="batter-row">
+        <span class="name">${p.name}</span>
+        <button class="btn btn-sm" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:18px" onclick="removeFromTeam(${tid},${p.id})">×</button>
+      </div>`;
+    });
+    h += `</div>`;
+  } else {
+    h += `<p class="text-sm text-muted mb-4">No players in squad.</p>`;
+  }
+
+  // Add player dropdown
+  const available = allPlayers.filter(p => !team.players.find(tp => tp.id === p.id));
+  if (available.length) {
+    h += `<div class="flex gap-2 items-center">
+      <select id="addPlayerToTeamSelect" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:6px">
+        <option value="">— Add Player —</option>
+        ${available.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="addToTeam(${tid})">Add</button>
+    </div>`;
+  }
+
+  h += `<div class="mt-4 flex justify-between">
+    <button class="btn btn-outline btn-sm" onclick="deleteTeam(${tid})">🗑 Delete Team</button>
+  </div>`;
+
+  el('teamDetailBody').innerHTML = h;
+  el('teamDetailModal').classList.add('open');
+}
+
+function showAddTeam() {
+  el('tName').value = '';
+  el('tShortName').value = '';
+  el('addTeamModal').classList.add('open');
+}
+
+async function saveTeam() {
+  const name = el('tName').value.trim();
+  if (!name) { toast('Team name is required!', 'error'); return; }
+  const res = await api('/teams/', 'POST', {
+    name,
+    short_name: el('tShortName').value.trim() || null
+  });
+  if (res && res.id) {
+    el('addTeamModal').classList.remove('open');
+    toast('Team created!', 'success');
+    allTeams = await api('/teams/');
+    renderTeams();
+  } else {
+    toast(res?.detail || 'Error', 'error');
+  }
+}
+
+async function addToTeam(tid) {
+  const pid = parseInt(el('addPlayerToTeamSelect').value);
+  if (!pid) { toast('Select a player', 'error'); return; }
+  const res = await api(`/teams/${tid}/players`, 'POST', { player_id: pid });
+  if (res && res.id) {
+    toast('Player added!', 'success');
+    allTeams = await api('/teams/');
+    renderTeams();
+    viewTeamDetail(tid);
+  } else {
+    toast(res?.detail || 'Error', 'error');
+  }
+}
+
+async function removeFromTeam(tid, pid) {
+  if (!confirm('Remove this player from the team?')) return;
+  await api(`/teams/${tid}/players/${pid}`, 'DELETE');
+  toast('Player removed', 'success');
+  allTeams = await api('/teams/');
+  renderTeams();
+  viewTeamDetail(tid);
+}
+
+async function deleteTeam(tid) {
+  if (!confirm('Delete this team?')) return;
+  await api(`/teams/${tid}`, 'DELETE');
+  el('teamDetailModal').classList.remove('open');
+  toast('Team deleted', 'success');
+  allTeams = await api('/teams/');
+  renderTeams();
+}
+</script>
+{% endblock %}

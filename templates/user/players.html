@@ -1,0 +1,177 @@
+{% extends "user/base.html" %}
+{% block title %}BOXcric — Players{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Players</h1>
+
+<div class="player-grid" id="playerGrid">
+  <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+</div>
+
+<!-- Members Section -->
+<div class="mt-6">
+  <h2 class="section-title">👥 Community Members</h2>
+  <div class="player-grid" id="memberGrid">
+    <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- Player Stats Modal -->
+<div class="modal-backdrop" id="playerStatsModal" style="display:none">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <h3 id="playerStatsName">Player Stats</h3>
+      <button class="modal-close" onclick="document.getElementById('playerStatsModal').style.display='none'">&times;</button>
+    </div>
+    <div class="modal-body" id="playerStatsBody">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- User Profile Modal -->
+<div class="modal-backdrop" id="userProfileModal" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3 id="userProfileName">Profile</h3>
+      <button class="modal-close" onclick="document.getElementById('userProfileModal').style.display='none'">&times;</button>
+    </div>
+    <div class="modal-body" id="userProfileBody">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var players = [];
+var members = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Load cricket players
+  api('/players/').then(function(data) {
+    players = data || [];
+    if (!players.length) {
+      document.getElementById('playerGrid').innerHTML = emptyState('👤', 'No players yet', 'Players will appear here once added.');
+      return;
+    }
+    document.getElementById('playerGrid').innerHTML = players.map(function(p) {
+      var initials = p.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+      var role = getRoleLabel(p.batting_style, p.bowling_style);
+      return '<div class="player-card" onclick="viewPlayerStats(' + p.id + ')">' +
+        '<div class="player-avatar">' + initials + '</div>' +
+        '<div class="player-info">' +
+        '<div class="player-name">' + esc(p.name) + '</div>' +
+        '<div class="player-role">' + role + '</div>' +
+        '</div></div>';
+    }).join('');
+  });
+
+  // Load registered users (community members)
+  api('/api/user/all').then(function(data) {
+    members = data || [];
+    if (!members.length) {
+      document.getElementById('memberGrid').innerHTML = emptyState('👥', 'No members yet', 'Registered users will appear here.');
+      return;
+    }
+    document.getElementById('memberGrid').innerHTML = members.map(function(u) {
+      var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+      var roleLabel = u.player_role ? capitalize(u.player_role.replace(/_/g,' ')) : 'Member';
+      var photoHtml = u.photo
+        ? '<img src="' + esc(u.photo) + '" style="width:100%;height:100%;object-fit:cover">'
+        : initials;
+      return '<div class="player-card" onclick="viewUserProfile(' + u.id + ')">' +
+        '<div class="player-avatar" style="overflow:hidden">' + photoHtml + '</div>' +
+        '<div class="player-info">' +
+        '<div class="player-name">' + esc(u.name) + '</div>' +
+        '<div class="player-role">' + roleLabel + '</div>' +
+        '</div></div>';
+    }).join('');
+  });
+});
+
+function getRoleLabel(bat, bowl) {
+  if (bowl === 'none') return formatStyle(bat) + ' Batter';
+  return formatStyle(bat) + ' • ' + formatBowlStyle(bowl);
+}
+function formatStyle(s) { return s === 'right_hand' ? 'RHB' : 'LHB'; }
+function formatBowlStyle(s) {
+  var map = { right_arm_fast:'RF', left_arm_fast:'LF', right_arm_medium:'RM', left_arm_medium:'LM', right_arm_offspin:'OB', left_arm_orthodox:'SLA', right_arm_legspin:'LB', left_arm_chinaman:'LC', none:'' };
+  return map[s] || s;
+}
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function viewPlayerStats(pid) {
+  var player = players.find(function(p){ return p.id === pid; });
+  document.getElementById('playerStatsName').textContent = player ? player.name : 'Player Stats';
+  document.getElementById('playerStatsBody').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  document.getElementById('playerStatsModal').style.display = 'flex';
+
+  api('/stats/player/' + pid).then(function(stats) {
+    if (!stats || stats.detail) {
+      document.getElementById('playerStatsBody').innerHTML = '<p class="text-muted text-center">No stats available yet.</p>';
+      return;
+    }
+    document.getElementById('playerStatsBody').innerHTML =
+      '<p class="text-sm text-muted mb-4">' + stats.matches + ' match' + (stats.matches !== 1 ? 'es' : '') + ' played</p>' +
+      '<h4 style="font-size:13px;text-transform:uppercase;color:var(--text-light);margin-bottom:8px">🏏 Batting</h4>' +
+      '<div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">' +
+        statCard(stats.total_runs, 'Runs') + statCard(stats.batting_average, 'Average') +
+        statCard(stats.strike_rate, 'SR') + statCard(stats.highest_score, 'HS') +
+        statCard(stats.innings_batted, 'Innings') + statCard(stats.not_outs, 'N/O') +
+        statCard(stats.fours, '4s') + statCard(stats.sixes, '6s') +
+      '</div>' +
+      '<h4 style="font-size:13px;text-transform:uppercase;color:var(--text-light);margin:16px 0 8px">🎯 Bowling</h4>' +
+      '<div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">' +
+        statCard(stats.total_wickets, 'Wickets') + statCard(stats.bowling_average, 'Average') +
+        statCard(stats.economy, 'Economy') + statCard(stats.best_bowling, 'Best') +
+      '</div>';
+  });
+}
+
+function viewUserProfile(uid) {
+  var user = members.find(function(u){ return u.id === uid; });
+  if (!user) return;
+  document.getElementById('userProfileName').textContent = user.name;
+
+  var initials = user.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+  var photoHtml = user.photo
+    ? '<img src="' + esc(user.photo) + '" style="width:100%;height:100%;object-fit:cover">'
+    : '<span style="font-size:28px;font-weight:700;color:#fff">' + initials + '</span>';
+
+  var h = '';
+  // Photo & name header
+  h += '<div style="text-align:center;margin-bottom:16px">';
+  h += '<div style="width:80px;height:80px;border-radius:50%;margin:0 auto 10px;overflow:hidden;border:3px solid var(--primary);display:flex;align-items:center;justify-content:center;background:var(--primary-light)">' + photoHtml + '</div>';
+  h += '<div style="font-size:18px;font-weight:700">' + esc(user.name) + '</div>';
+  h += '<div class="text-sm text-muted">' + esc(user.email) + '</div>';
+  h += '</div>';
+
+  // Info chips
+  h += '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px">';
+  if (user.player_role) h += '<span style="background:var(--primary);color:#fff;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600">' + capitalize(user.player_role.replace(/_/g,' ')) + '</span>';
+  if (user.gender) h += '<span style="background:var(--card-bg);border:1px solid var(--border);padding:4px 14px;border-radius:20px;font-size:12px">' + capitalize(user.gender) + '</span>';
+  if (user.batting_hand) h += '<span style="background:var(--card-bg);border:1px solid var(--border);padding:4px 14px;border-radius:20px;font-size:12px">' + capitalize(user.batting_hand) + ' Hand Bat</span>';
+  if (user.bowling_type && user.bowling_type !== 'none') h += '<span style="background:var(--card-bg);border:1px solid var(--border);padding:4px 14px;border-radius:20px;font-size:12px">' + capitalize(user.bowling_type.replace(/_/g,' ')) + '</span>';
+  h += '</div>';
+
+  // Details grid
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  if (user.age) h += '<div class="stat-card"><div class="stat-value">' + user.age + '</div><div class="stat-label">Age</div></div>';
+  if (user.height) h += '<div class="stat-card"><div class="stat-value">' + esc(user.height) + '</div><div class="stat-label">Height</div></div>';
+  if (user.bowling_hand && user.bowling_hand !== 'none') h += '<div class="stat-card"><div class="stat-value">' + capitalize(user.bowling_hand) + '</div><div class="stat-label">Bowl Hand</div></div>';
+  var joined = user.created_at ? new Date(user.created_at).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : '-';
+  h += '<div class="stat-card"><div class="stat-value" style="font-size:14px">' + joined + '</div><div class="stat-label">Joined</div></div>';
+  h += '</div>';
+
+  document.getElementById('userProfileBody').innerHTML = h;
+  document.getElementById('userProfileModal').style.display = 'flex';
+}
+
+function statCard(val, label) {
+  return '<div class="stat-card"><div class="stat-value">' + val + '</div><div class="stat-label">' + label + '</div></div>';
+}
+</script>
+{% endblock %}

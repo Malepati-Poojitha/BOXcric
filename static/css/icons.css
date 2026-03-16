@@ -1,0 +1,30 @@
+/* ===== BOXcric SVG Icon Set ===== */
+/* Clean, sharp inline SVG icons for nav */
+
+.nav-icon {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+}
+
+.bottom-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+}
+
+.bottom-nav-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 0;
+}
+
+/* Active state color */
+.bottom-nav-item.active .bottom-nav-icon svg {
+  fill: var(--primary);
+  stroke: var(--primary);
+}

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>{% block title %}BOXcric{% endblock %}</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#1a472a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BOXcric">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+
+  <link rel="stylesheet" href="/static/css/style.css?v=13">
+  <link rel="stylesheet" href="/static/css/icons.css?v=1">
+  <link rel="icon" href="/static/images/logo.svg" type="image/svg+xml">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <button class="hamburger" onclick="toggleNav()" aria-label="Menu">☰</button>
+      <a href="/app" class="logo"><img src="/static/images/logo.svg" alt="BOXcric" style="height:44px;width:44px;border-radius:8px;vertical-align:middle;margin-right:8px">BOX<span>cric</span></a>
+      <nav class="nav" id="mainNav">
+        <a href="/app" class="{% if active == 'home' %}active{% endif %}">Home</a>
+        <a href="/app/matches" class="{% if active == 'matches' %}active{% endif %}">Matches</a>
+        <a href="/app/players" class="{% if active == 'players' %}active{% endif %}">Players</a>
+        <a href="/app/records" class="{% if active == 'records' %}active{% endif %}">Records</a>
+        <a href="/app/rankings" class="{% if active == 'rankings' %}active{% endif %}">Rankings</a>
+        <a href="/app/videos" class="{% if active == 'videos' %}active{% endif %}">Videos</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeBtn">🌙</button>
+        {% if user %}
+          <a href="/app/profile" title="My Profile" style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);color:#fff;font-size:16px;text-decoration:none;transition:all 0.2s;overflow:hidden;border:2px solid rgba(255,255,255,0.3)">{% if user.photo %}<img src="{{ user.photo }}" style="width:100%;height:100%;object-fit:cover">{% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>{% endif %}</a>
+          <a href="/app/profile" class="text-sm" style="color:rgba(255,255,255,0.85);margin-right:4px;font-weight:600">{{ user.name }}</a>
+          <button class="btn btn-outline btn-sm logout-btn" style="color:#fff;border-color:rgba(255,255,255,0.3)" onclick="logoutUser()">Logout</button>
+        {% else %}
+          <a href="/app/login" class="btn btn-accent btn-sm">Login</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Main content -->
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Bottom Navigation (mobile) -->
+  <nav class="bottom-nav" id="bottomNav">
+    <a href="/app" class="bottom-nav-item {% if active == 'home' %}active{% endif %}">
+      <span class="bottom-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+      <span class="bottom-nav-label">Home</span>
+    </a>
+    <a href="/app/matches" class="bottom-nav-item {% if active == 'matches' %}active{% endif %}">
+      <span class="bottom-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 12c0-2 1.5-4 4-4s4 2 4 4-1.5 4-4 4-4-2-4-4z"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/></svg></span>
+      <span class="bottom-nav-label">Matches</span>
+    </a>
+    <a href="/app/players" class="bottom-nav-item {% if active == 'players' %}active{% endif %}">
+      <span class="bottom-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+      <span class="bottom-nav-label">Players</span>
+    </a>
+    <a href="/app/records" class="bottom-nav-item {% if active == 'records' %}active{% endif %}">
+      <span class="bottom-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 14v4"/></svg></span>
+      <span class="bottom-nav-label">Records</span>
+    </a>
+    <a href="/app/videos" class="bottom-nav-item {% if active == 'videos' %}active{% endif %}">
+      <span class="bottom-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>
+      <span class="bottom-nav-label">Videos</span>
+    </a>
+    {% if user %}
+    <a href="#" class="bottom-nav-item" onclick="logoutUser();return false;">
+      <span class="bottom-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+      <span class="bottom-nav-label">Logout</span>
+    </a>
+    {% else %}
+    <a href="/app/login" class="bottom-nav-item {% if active == 'login' %}active{% endif %}">
+      <span class="bottom-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></span>
+      <span class="bottom-nav-label">Login</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <!-- PWA Install Prompt -->
+  <div class="install-banner" id="installBanner">
+    <div class="install-banner-text">
+      <strong>Install BOXcric</strong>
+      <span>Add to home screen for the best experience</span>
+    </div>
+    <button class="btn btn-primary btn-sm" id="installBtn">Install</button>
+    <button class="install-dismiss" id="installDismiss">&times;</button>
+  </div>
+
+  <script src="/static/js/app.js?v=7"></script>
+  <script src="/static/js/firebase-config.js"></script>
+  <script>
+    async function logoutUser() {
+      await api('/api/user/logout', 'POST');
+      window.location.href = '/app/login';
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,83 @@
+{% extends "user/base.html" %}
+{% block title %}BOXcric — Home{% endblock %}
+
+{% block content %}
+{% if user %}
+  <div class="card mb-4" style="background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff">
+    <div class="card-body" style="padding:20px">
+      <div class="text-sm" style="opacity:0.7">Welcome back</div>
+      <div style="font-size:20px;font-weight:700">{{ user.name }} 👋</div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Live Matches -->
+<div id="liveSection" class="hidden">
+  <h2 class="section-title">🔴 Live Matches</h2>
+  <div class="match-list" id="liveMatches"></div>
+  <div class="mt-6"></div>
+</div>
+
+<!-- Recent / Upcoming -->
+<div class="grid-2">
+  <div>
+    <h2 class="section-title">Recent Results</h2>
+    <div class="match-list" id="recentMatches">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+  </div>
+  <div>
+    <h2 class="section-title">Upcoming</h2>
+    <div class="match-list" id="upcomingMatches">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="mt-6">
+  <h2 class="section-title">Quick Stats</h2>
+  <div class="stat-grid" id="quickStats">
+    <div class="stat-card"><div class="stat-value" id="statMatches">-</div><div class="stat-label">Matches</div></div>
+    <div class="stat-card"><div class="stat-value" id="statPlayers">-</div><div class="stat-label">Players</div></div>
+    <div class="stat-card"><div class="stat-value" id="statTeams">-</div><div class="stat-label">Teams</div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const matches = await api('/matches/');
+  const players = await api('/players/');
+  const teams = await api('/teams/');
+
+  el('statMatches').textContent = matches.length;
+  el('statPlayers').textContent = players.length;
+  el('statTeams').textContent = teams.length;
+
+  // Live
+  const live = matches.filter(m => m.status === 'live' || m.status === 'innings_break');
+  if (live.length) {
+    el('liveSection').classList.remove('hidden');
+    el('liveMatches').innerHTML = live.map(m => matchCardUser(m, teams)).join('');
+  }
+
+  // Recent
+  const completed = matches.filter(m => m.status === 'completed').slice(0, 5);
+  el('recentMatches').innerHTML = completed.length
+    ? completed.map(m => matchCardUser(m, teams)).join('')
+    : emptyState('🏏', 'No matches yet', 'Check back when matches are played!');
+
+  // Upcoming
+  const upcoming = matches.filter(m => m.status === 'scheduled' || m.status === 'toss').slice(0, 5);
+  el('upcomingMatches').innerHTML = upcoming.length
+    ? upcoming.map(m => matchCardUser(m, teams)).join('')
+    : emptyState('📅', 'Nothing scheduled', 'Upcoming matches will appear here.');
+});
+
+function matchCardUser(m, teams) {
+  return matchCard(m, teams, '/app/match');
+}
+</script>
+{% endblock %}

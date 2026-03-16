@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}BOXcric — Records{% endblock %}
+
+{% block content %}
+<h1 class="page-title">🏆 All-Time Records</h1>
+
+<div class="records-list" id="recordsList">
+  <div class="loading-center"><div class="spinner"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const records = await api('/records/');
+  if (!records.length) {
+    el('recordsList').innerHTML = emptyState('🏆', 'No records yet', 'Complete some matches to see records here.');
+    return;
+  }
+
+  const icons = {
+    'Highest Individual Score': '🏏',
+    'Best Bowling in an Innings': '🎯',
+    'Highest Team Total': '📈',
+    'Lowest Team Total': '📉',
+    'Most Career Runs': '⭐',
+    'Most Career Wickets': '🔥',
+    'Most Career Sixes': '💥'
+  };
+
+  el('recordsList').innerHTML = records.map(r => `
+    <div class="record-card">
+      <div>
+        <div class="record-label">${icons[r.category] || '🏅'} ${r.category}</div>
+        <div class="record-detail">
+          ${r.player_name ? r.player_name : ''}${r.team_name ? r.team_name : ''}${r.match_info ? ' • ' + r.match_info : ''}
+        </div>
+      </div>
+      <div class="record-value">${r.value}</div>
+    </div>
+  `).join('');
+});
+</script>
+{% endblock %}
