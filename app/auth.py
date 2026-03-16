@@ -19,9 +19,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 8760  # 365 days — stay logged in
 OTP_EXPIRE_MINUTES = 5
 
-# Email config — Resend HTTP API (free 100 emails/day)
-RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
-RESEND_FROM = os.getenv("RESEND_FROM", "BOXcric <onboarding@resend.dev>")
+# Email config — Brevo HTTP API (free 300 emails/day)
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
+BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "")
 
 # In-memory OTP store: { identifier: { "otp": "123456", "expires": datetime, "user_id": int } }
 _otp_store: dict[str, dict] = {}
@@ -73,9 +73,9 @@ def generate_otp(identifier: str, user_id: int) -> str:
 
 
 def send_otp_email(to_email: str, otp: str, user_name: str = "User") -> bool:
-    """Send OTP via Resend HTTP API. Returns True if sent, False otherwise."""
-    if not RESEND_API_KEY:
-        print(f"[EMAIL] Resend API key not configured")
+    """Send OTP via Brevo HTTP API. Returns True if sent, False otherwise."""
+    if not BREVO_API_KEY or not BREVO_SENDER_EMAIL:
+        print(f"[EMAIL] Brevo not configured. API_KEY={'set' if BREVO_API_KEY else 'empty'}, SENDER={'set' if BREVO_SENDER_EMAIL else 'empty'}")
         return False
     try:
         html = f"""\
@@ -93,24 +93,25 @@ def send_otp_email(to_email: str, otp: str, user_name: str = "User") -> bool:
         </div>"""
 
         payload = json.dumps({
-            "from": RESEND_FROM,
-            "to": [to_email],
+            "sender": {"name": "BOXcric", "email": BREVO_SENDER_EMAIL},
+            "to": [{"email": to_email, "name": user_name}],
             "subject": f"BOXcric Login OTP: {otp}",
-            "html": html
+            "htmlContent": html
         }).encode("utf-8")
 
         req = urllib.request.Request(
-            "https://api.resend.com/emails",
+            "https://api.brevo.com/v3/smtp/email",
             data=payload,
             headers={
-                "Authorization": f"Bearer {RESEND_API_KEY}",
-                "Content-Type": "application/json"
+                "api-key": BREVO_API_KEY,
+                "Content-Type": "application/json",
+                "Accept": "application/json"
             },
             method="POST"
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
             result = json.loads(resp.read().decode())
-            print(f"[EMAIL] Sent OTP to {to_email} via Resend: {result.get('id', 'ok')}")
+            print(f"[EMAIL] Sent OTP to {to_email} via Brevo: {result}")
         return True
     except urllib.error.HTTPError as e:
         body = e.read().decode() if e.fp else ""
