@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Enum as SQLEnum, ForeignKey
 from app.database import Base
 import enum
 
@@ -29,3 +29,4 @@ class Player(Base):
     batting_style = Column(SQLEnum(BattingStyle), default=BattingStyle.RIGHT_HAND)
     bowling_style = Column(SQLEnum(BowlingStyle), default=BowlingStyle.NONE)
     phone = Column(String(15), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)

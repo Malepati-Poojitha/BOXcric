@@ -5,6 +5,7 @@ import uuid
 
 from app.database import get_db
 from app.models.user import User
+from app.models.player import Player, BattingStyle, BowlingStyle
 from app.schemas.user import (
     UserRegister, UserLogin, UserOut, TokenOut, ProfileUpdate,
     ForgotPasswordRequest, VerifyOtpRequest, ResetPasswordRequest,
@@ -17,6 +18,50 @@ from app.auth import (
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads", "photos")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+def _map_bowling_style(hand, btype):
+    """Map user bowling_hand + bowling_type to Player BowlingStyle enum."""
+    if not hand or hand == 'none':
+        return BowlingStyle.NONE
+    arm = 'right_arm' if hand == 'right' else 'left_arm'
+    type_map = {
+        'fast': 'fast', 'medium': 'medium', 'offspin': 'offspin',
+        'legspin': 'legspin', 'orthodox': 'orthodox', 'chinaman': 'chinaman',
+    }
+    style_key = type_map.get(btype, '')
+    if not style_key:
+        return BowlingStyle.NONE
+    full = f"{arm}_{style_key}"
+    try:
+        return BowlingStyle(full)
+    except ValueError:
+        return BowlingStyle.NONE
+
+
+def sync_user_to_player(user, db: Session):
+    """Create or update a Player record linked to this user."""
+    bat = BattingStyle.LEFT_HAND if user.batting_hand == 'left' else BattingStyle.RIGHT_HAND
+    bowl = _map_bowling_style(user.bowling_hand, user.bowling_type)
+
+    player = db.query(Player).filter(Player.user_id == user.id).first()
+    if player:
+        player.name = user.name
+        player.nickname = user.nickname
+        player.batting_style = bat
+        player.bowling_style = bowl
+        player.phone = user.phone
+    else:
+        player = Player(
+            name=user.name,
+            nickname=user.nickname,
+            batting_style=bat,
+            bowling_style=bowl,
+            phone=user.phone,
+            user_id=user.id,
+        )
+        db.add(player)
+    db.commit()
 
 router = APIRouter(prefix="/api/user", tags=["User Auth"])
 
@@ -163,6 +208,10 @@ def update_profile(data: ProfileUpdate, request: Request, db: Session = Depends(
     user.profile_complete = True
     db.commit()
     db.refresh(user)
+
+    # Sync user profile to linked Player record
+    sync_user_to_player(user, db)
+
     return user
 
 

@@ -1,11 +1,8 @@
 import os
 import random
-import smtplib
 import json
 import urllib.request
 import urllib.error
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 import bcrypt
 from jose import jwt, JWTError

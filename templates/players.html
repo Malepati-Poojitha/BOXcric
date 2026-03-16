@@ -93,10 +93,11 @@ async function loadPlayers() {
   el('playerGrid').innerHTML = players.map(p => {
     const initials = p.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
     const role = getRoleLabel(p.batting_style, p.bowling_style);
+    const badge = p.user_id ? '<span style="background:#2d6a4f;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">👤 User</span>' : '';
     return `<div class="player-card" onclick="viewPlayerStats(${p.id})">
       <div class="player-avatar">${initials}</div>
       <div class="player-info">
-        <div class="player-name">${p.name}${p.nickname ? ' <span class="text-muted text-sm">(' + p.nickname + ')</span>' : ''}</div>
+        <div class="player-name">${p.name}${p.nickname ? ' <span class="text-muted text-sm">(' + p.nickname + ')</span>' : ''}${badge}</div>
         <div class="player-role">${role}</div>
       </div>
     </div>`;

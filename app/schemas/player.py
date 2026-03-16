@@ -26,5 +26,6 @@ class PlayerOut(BaseModel):
     batting_style: BattingStyle
     bowling_style: BowlingStyle
     phone: Optional[str] = None
+    user_id: Optional[int] = None
 
     model_config = {"from_attributes": True}
