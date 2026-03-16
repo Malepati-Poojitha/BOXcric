@@ -346,6 +346,16 @@ function pickOpt(group, value) {
 }
 
 function saveProfile() {
+  // Validate required fields
+  if (!profileGender) { toast('Please select your Gender', 'error'); return; }
+  if (!profileRole) { toast('Please select your Playing Role', 'error'); return; }
+  if (!profileBat) { toast('Please select your Batting Hand', 'error'); return; }
+  if (!profileBowl) { toast('Please select your Bowling Hand', 'error'); return; }
+  if (profileBowl !== 'none' && !profileType) { toast('Please select your Bowling Type', 'error'); return; }
+
+  var name = document.getElementById('profName').value.trim();
+  if (!name || name.length < 2) { toast('Please enter your name (min 2 chars)', 'error'); return; }
+
   var age = document.getElementById('profAge').value;
   var height = document.getElementById('profHeight').value.trim();
 
@@ -362,16 +372,15 @@ function saveProfile() {
 
   photoPromise.then(function() {
     var profileData = {};
-    var name = document.getElementById('profName').value.trim();
     var nickname = document.getElementById('profNickname').value.trim();
-    if (name) profileData.name = name;
+    profileData.name = name;
     if (nickname) profileData.nickname = nickname;
     if (age) profileData.age = parseInt(age);
     if (height) profileData.height = height;
-    if (profileBat) profileData.batting_hand = profileBat;
-    if (profileBowl) profileData.bowling_hand = profileBowl;
-    if (profileGender) profileData.gender = profileGender;
-    if (profileRole) profileData.player_role = profileRole;
+    profileData.batting_hand = profileBat;
+    profileData.bowling_hand = profileBowl;
+    profileData.gender = profileGender;
+    profileData.player_role = profileRole;
     if (profileType && profileBowl !== 'none') profileData.bowling_type = profileType;
     if (profileBowl === 'none') profileData.bowling_type = 'none';
 

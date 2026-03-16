@@ -159,6 +159,20 @@ def update_profile(data: ProfileUpdate, request: Request, db: Session = Depends(
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
+    # Require role fields on first profile save (or if not yet set)
+    if not user.profile_complete:
+        missing = []
+        if not data.gender and not user.gender:
+            missing.append("Gender")
+        if not data.player_role and not user.player_role:
+            missing.append("Playing Role")
+        if not data.batting_hand and not user.batting_hand:
+            missing.append("Batting Hand")
+        if not data.bowling_hand and not user.bowling_hand:
+            missing.append("Bowling Hand")
+        if missing:
+            raise HTTPException(status_code=400, detail=f"Please select: {', '.join(missing)}")
+
     # Always allowed: name, nickname, age, height
     if data.name is not None and len(data.name.strip()) >= 2:
         user.name = data.name.strip()

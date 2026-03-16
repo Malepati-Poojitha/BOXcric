@@ -196,7 +196,16 @@ function saveProfile() {
   var nickname = document.getElementById('edNickname').value.trim();
   var age = document.getElementById('edAge').value;
   var height = document.getElementById('edHeight').value.trim();
-  if (name && name.length >= 2) data.name = name;
+
+  // Validate required fields
+  if (!edGender) { toast('Please select your Gender', 'error'); return; }
+  if (!edRole) { toast('Please select your Playing Role', 'error'); return; }
+  if (!edBat) { toast('Please select your Batting Hand', 'error'); return; }
+  if (!edBowl) { toast('Please select your Bowling Hand', 'error'); return; }
+  if (edBowl !== 'none' && !edType) { toast('Please select your Bowling Type', 'error'); return; }
+  if (!name || name.length < 2) { toast('Please enter your name (min 2 chars)', 'error'); return; }
+
+  data.name = name;
   if (nickname) data.nickname = nickname;
   if (age) data.age = parseInt(age);
   if (height) data.height = height;
