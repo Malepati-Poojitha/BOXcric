@@ -74,8 +74,10 @@ def generate_otp(identifier: str, user_id: int) -> str:
 def send_otp_email(to_email: str, otp: str, user_name: str = "User") -> bool:
     """Send OTP via Gmail SMTP. Returns True if sent, False otherwise."""
     if not SMTP_EMAIL or not SMTP_PASSWORD:
+        print(f"[EMAIL] SMTP not configured. SMTP_EMAIL={'set' if SMTP_EMAIL else 'empty'}, SMTP_PASSWORD={'set' if SMTP_PASSWORD else 'empty'}")
         return False
     try:
+        print(f"[EMAIL] Sending OTP to {to_email} via {SMTP_HOST}:{SMTP_PORT} from {SMTP_EMAIL}")
         msg = MIMEMultipart("alternative")
         msg["From"] = f"BOXcric <{SMTP_EMAIL}>"
         msg["To"] = to_email
