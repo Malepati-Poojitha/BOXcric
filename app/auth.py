@@ -98,10 +98,23 @@ def send_otp_email(to_email: str, otp: str, user_name: str = "User") -> bool:
         </div>"""
         msg.attach(MIMEText(html, "html"))
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-            server.starttls()
-            server.login(SMTP_EMAIL, SMTP_PASSWORD)
-            server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+        # Try SSL (port 465) first, then STARTTLS (port 587)
+        if SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                server.login(SMTP_EMAIL, SMTP_PASSWORD)
+                server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+        else:
+            try:
+                with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                    server.starttls()
+                    server.login(SMTP_EMAIL, SMTP_PASSWORD)
+                    server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+            except OSError:
+                # Port 587 blocked — fallback to SSL port 465
+                print(f"[EMAIL] Port {SMTP_PORT} blocked, trying SSL port 465")
+                with smtplib.SMTP_SSL(SMTP_HOST, 465, timeout=10) as server:
+                    server.login(SMTP_EMAIL, SMTP_PASSWORD)
+                    server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
         return True
     except Exception as e:
         print(f"Email send failed: {e}")
