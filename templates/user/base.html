@@ -105,6 +105,37 @@
       window.location.href = '/app/login';
     }
   </script>
+
+  {% if not user %}
+  <!-- Login Popup for non-logged-in users -->
+  <div id="loginPopup" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);padding:0;display:none">
+    <div style="max-width:420px;margin:0 auto;background:var(--card-bg,#1a2332);border-radius:16px 16px 0 0;padding:24px 20px;box-shadow:0 -4px 24px rgba(0,0,0,0.4);position:relative">
+      <button onclick="dismissLoginPopup()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text-light);font-size:20px;cursor:pointer">&times;</button>
+      <div style="text-align:center">
+        <div style="font-size:40px;margin-bottom:8px">🏏</div>
+        <h3 style="margin:0 0 6px;font-size:18px;font-weight:700">Join BOXcric</h3>
+        <p style="color:var(--text-light);font-size:13px;margin:0 0 16px">Login to track your stats, view rankings & more</p>
+        <a href="/app/login" class="btn btn-primary btn-lg btn-block" style="font-size:16px;padding:12px">Login / Sign Up</a>
+        <p style="color:var(--text-light);font-size:11px;margin:10px 0 0;opacity:0.6">You can still browse without logging in</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var dismissed = sessionStorage.getItem('loginPopupDismissed');
+      if (!dismissed) {
+        setTimeout(function() {
+          document.getElementById('loginPopup').style.display = 'block';
+        }, 2000);
+      }
+    })();
+    function dismissLoginPopup() {
+      document.getElementById('loginPopup').style.display = 'none';
+      sessionStorage.setItem('loginPopupDismissed', '1');
+    }
+  </script>
+  {% endif %}
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

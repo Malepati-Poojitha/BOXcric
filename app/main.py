@@ -179,12 +179,10 @@ def root_redirect():
 def user_home(request: Request, db: Session = Depends(get_db)):
     ctx = _user_ctx(request, db, "home")
     if hasattr(ctx, 'status_code'):
-        return ctx  # It's a redirect response
+        return ctx  # It's a redirect response (stale cookie)
     user = ctx.get("user")
-    if not user:
-        from fastapi.responses import RedirectResponse
-        return RedirectResponse(url="/app/login")
-    if not user.profile_complete:
+    # If logged in but profile incomplete, redirect to login (profile setup)
+    if user and not user.profile_complete:
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/app/login")
     return templates.TemplateResponse("user/home.html", ctx)
