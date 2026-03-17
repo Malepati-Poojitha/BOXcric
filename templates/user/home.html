@@ -6,7 +6,10 @@
   <div class="card mb-4" style="background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff">
     <div class="card-body" style="padding:20px">
       <div class="text-sm" style="opacity:0.7">Welcome back</div>
-      <div style="font-size:20px;font-weight:700">{{ user.name }} 👋</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:20px;font-weight:700">{{ user.name }} 👋</div>
+        <a href="/app/login?switch=1" style="color:rgba(255,255,255,0.7);font-size:12px;text-decoration:underline">Not you?</a>
+      </div>
     </div>
   </div>
 {% endif %}

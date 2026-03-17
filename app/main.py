@@ -190,17 +190,21 @@ def user_home(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/app/login", include_in_schema=False)
 def user_login(request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import RedirectResponse
     user = get_current_user_from_cookie(request, db)
     # Stale cookie — user deleted from DB
     token = request.cookies.get("boxcric_token")
     if token and not user:
-        from fastapi.responses import RedirectResponse
+        response = RedirectResponse(url="/app/login")
+        response.delete_cookie("boxcric_token")
+        return response
+    # Switch account — clear cookie and show login
+    if request.query_params.get("switch"):
         response = RedirectResponse(url="/app/login")
         response.delete_cookie("boxcric_token")
         return response
     # Already logged in with complete profile — go to home
     if user and user.profile_complete:
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/app")
     # Logged in but profile incomplete — stay on login page (shows profile setup)
     return templates.TemplateResponse("user/login.html", {"request": request, "active": "login", "user": user})
