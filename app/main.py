@@ -29,6 +29,10 @@ try:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE players ADD COLUMN user_id INTEGER"))
             print("[MIGRATE] Added user_id column to players table")
+        if "player_role" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE players ADD COLUMN player_role VARCHAR(30)"))
+            print("[MIGRATE] Added player_role column to players table")
 
     # Add captain_id and vice_captain_id to teams
     if "teams" in insp.get_table_names():

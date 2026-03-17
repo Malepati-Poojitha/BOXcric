@@ -9,6 +9,7 @@ class PlayerCreate(BaseModel):
     batting_style: BattingStyle = BattingStyle.RIGHT_HAND
     bowling_style: BowlingStyle = BowlingStyle.NONE
     phone: Optional[str] = None
+    player_role: Optional[str] = None
 
 
 class PlayerUpdate(BaseModel):
@@ -17,6 +18,7 @@ class PlayerUpdate(BaseModel):
     batting_style: Optional[BattingStyle] = None
     bowling_style: Optional[BowlingStyle] = None
     phone: Optional[str] = None
+    player_role: Optional[str] = None
 
 
 class PlayerOut(BaseModel):
@@ -26,6 +28,7 @@ class PlayerOut(BaseModel):
     batting_style: BattingStyle
     bowling_style: BowlingStyle
     phone: Optional[str] = None
+    player_role: Optional[str] = None
     user_id: Optional[int] = None
 
     model_config = {"from_attributes": True}

@@ -51,6 +51,7 @@ def sync_user_to_player(user, db: Session):
         player.batting_style = bat
         player.bowling_style = bowl
         player.phone = user.phone
+        player.player_role = user.player_role
     else:
         player = Player(
             name=user.name,
@@ -58,6 +59,7 @@ def sync_user_to_player(user, db: Session):
             batting_style=bat,
             bowling_style=bowl,
             phone=user.phone,
+            player_role=user.player_role,
             user_id=user.id,
         )
         db.add(player)

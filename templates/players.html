@@ -40,6 +40,16 @@
         <label>Nickname</label>
         <input type="text" id="pNickname" placeholder="Nickname">
       </div>
+      <div class="form-group">
+        <label>Playing Role *</label>
+        <select id="pRole">
+          <option value="">— Select Role —</option>
+          <option value="batsman">🏏 Batsman</option>
+          <option value="bowler">🎯 Bowler</option>
+          <option value="allrounder">⭐ All-Rounder</option>
+          <option value="wk_batsman">🧤 WK-Batsman</option>
+        </select>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label>Batting Style</label>
@@ -92,8 +102,8 @@ async function loadPlayers() {
   }
   el('playerGrid').innerHTML = players.map(p => {
     const initials = p.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-    const role = getRoleLabel(p.batting_style, p.bowling_style);
-    const badge = p.user_id ? '<span style="background:#2d6a4f;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">👤 User</span>' : '';
+    const role = p.player_role ? formatRole(p.player_role) : getRoleLabel(p.batting_style, p.bowling_style);
+    const badge = p.user_id ? '<span style="background:#2d6a4f;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">👤 User</span>' : '<span style="background:#555;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">Guest</span>';
     return `<div class="player-card" onclick="viewPlayerStats(${p.id})">
       <div class="player-avatar">${initials}</div>
       <div class="player-info">
@@ -110,6 +120,10 @@ function getRoleLabel(bat, bowl) {
 }
 
 function formatStyle(s) { return s === 'right_hand' ? 'RHB' : 'LHB'; }
+function formatRole(r) {
+  const map = { batsman: '🏏 Batsman', bowler: '🎯 Bowler', allrounder: '⭐ All-Rounder', wk_batsman: '🧤 WK-Batsman' };
+  return map[r] || r;
+}
 function formatBowlStyle(s) {
   const map = {
     right_arm_fast: 'RF', left_arm_fast: 'LF', right_arm_medium: 'RM',
@@ -123,18 +137,22 @@ function showAddPlayer() {
   el('pName').value = '';
   el('pNickname').value = '';
   el('pPhone').value = '';
+  el('pRole').value = '';
   el('addPlayerModal').classList.add('open');
 }
 
 async function savePlayer() {
   const name = el('pName').value.trim();
   if (!name) { toast('Name is required!', 'error'); return; }
+  const role = el('pRole').value;
+  if (!role) { toast('Please select a playing role!', 'error'); return; }
   const payload = {
     name,
     nickname: el('pNickname').value.trim() || null,
     batting_style: el('pBatStyle').value,
     bowling_style: el('pBowlStyle').value,
-    phone: el('pPhone').value.trim() || null
+    phone: el('pPhone').value.trim() || null,
+    player_role: role
   };
   const res = await api('/players/', 'POST', payload);
   if (res && res.id) {
