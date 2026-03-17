@@ -158,7 +158,14 @@ def admin_users(request: Request):
 # ===== USER Pages (read-only, with login) =====
 def _user_ctx(request: Request, db: Session, active: str, **extra):
     """Build template context for user pages with auth info."""
+    from fastapi.responses import RedirectResponse
     user = get_current_user_from_cookie(request, db)
+    # If cookie exists but user not found (deleted DB), clear the stale cookie
+    token = request.cookies.get("boxcric_token")
+    if token and not user:
+        response = RedirectResponse(url="/app/login")
+        response.delete_cookie("boxcric_token")
+        return response
     return {"request": request, "active": active, "user": user, **extra}
 
 
@@ -170,17 +177,35 @@ def root_redirect():
 
 @app.get("/app", include_in_schema=False)
 def user_home(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("user/home.html", _user_ctx(request, db, "home"))
+    ctx = _user_ctx(request, db, "home")
+    if hasattr(ctx, 'status_code'):
+        return ctx  # It's a redirect response
+    user = ctx.get("user")
+    if not user:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/app/login")
+    if not user.profile_complete:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/app/login")
+    return templates.TemplateResponse("user/home.html", ctx)
 
 
 @app.get("/app/login", include_in_schema=False)
 def user_login(request: Request, db: Session = Depends(get_db)):
-    # If already logged in, go to home
     user = get_current_user_from_cookie(request, db)
-    if user:
+    # Stale cookie — user deleted from DB
+    token = request.cookies.get("boxcric_token")
+    if token and not user:
+        from fastapi.responses import RedirectResponse
+        response = RedirectResponse(url="/app/login")
+        response.delete_cookie("boxcric_token")
+        return response
+    # Already logged in with complete profile — go to home
+    if user and user.profile_complete:
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/app")
-    return templates.TemplateResponse("user/login.html", {"request": request, "active": "login", "user": None})
+    # Logged in but profile incomplete — stay on login page (shows profile setup)
+    return templates.TemplateResponse("user/login.html", {"request": request, "active": "login", "user": user})
 
 
 @app.get("/app/matches", include_in_schema=False)
@@ -215,7 +240,13 @@ def user_rankings(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/app/profile", include_in_schema=False)
 def user_profile(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("user/profile.html", _user_ctx(request, db, "profile"))
+    ctx = _user_ctx(request, db, "profile")
+    if hasattr(ctx, 'status_code'):
+        return ctx
+    if not ctx.get("user"):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/app/login")
+    return templates.TemplateResponse("user/profile.html", ctx)
 
 
 # ===== PWA: Serve service worker from root scope =====
