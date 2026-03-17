@@ -41,6 +41,14 @@ try:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE teams ADD COLUMN vice_captain_id INTEGER"))
             print("[MIGRATE] Added vice_captain_id column to teams table")
+        if "host_id" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE teams ADD COLUMN host_id INTEGER"))
+            print("[MIGRATE] Added host_id column to teams table")
+        if "cohost_id" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE teams ADD COLUMN cohost_id INTEGER"))
+            print("[MIGRATE] Added cohost_id column to teams table")
 except Exception as e:
     print(f"[MIGRATE] Warning: {e}")
 

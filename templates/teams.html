@@ -51,9 +51,10 @@
 <script>
 let allTeams = [];
 let allPlayers = [];
+let allUsers = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  [allTeams, allPlayers] = await Promise.all([api('/teams/'), api('/players/')]);
+  [allTeams, allPlayers, allUsers] = await Promise.all([api('/teams/'), api('/players/'), api('/api/user/all')]);
   renderTeams();
 });
 
@@ -66,8 +67,12 @@ function renderTeams() {
     const short = t.short_name || t.name.slice(0, 3).toUpperCase();
     const capName = t.captain ? t.captain.name : '';
     const vcName = t.vice_captain ? t.vice_captain.name : '';
+    const hostName = t.host_id ? (allUsers.find(u => u.id === t.host_id) || {}).name || '' : '';
+    const cohostName = t.cohost_id ? (allUsers.find(u => u.id === t.cohost_id) || {}).name || '' : '';
     const leaderInfo = (capName || vcName) ?
       `<div class="text-sm" style="margin-top:4px">${capName ? '©️ ' + capName : ''}${capName && vcName ? ' • ' : ''}${vcName ? 'VC: ' + vcName : ''}</div>` : '';
+    const hostInfo = (hostName || cohostName) ?
+      `<div class="text-sm" style="margin-top:2px;color:var(--text-light)">${hostName ? '🎙️ ' + hostName : ''}${hostName && cohostName ? ' • ' : ''}${cohostName ? '🎤 ' + cohostName : ''}</div>` : '';
     return `<div class="team-card" onclick="viewTeamDetail(${t.id})">
       <div class="team-card-header">
         <div class="team-logo">${short}</div>
@@ -76,6 +81,7 @@ function renderTeams() {
       <div class="team-card-body">
         <div class="text-sm text-muted mb-2">${t.players.length} player${t.players.length !== 1 ? 's' : ''}</div>
         ${leaderInfo}
+        ${hostInfo}
         <ul class="team-player-list">
           ${t.players.map(p => {
             let badge = '';
@@ -124,6 +130,21 @@ function viewTeamDetail(tid) {
       <select id="selViceCaptain" style="width:100%;padding:8px;border:2px solid var(--border);border-radius:6px" onchange="setCaptain(${tid})">
         <option value="0">— None —</option>
         ${team.players.map(p => `<option value="${p.id}"${team.vice_captain_id === p.id ? ' selected' : ''}>${p.name}</option>`).join('')}
+      </select></div>`;
+    h += `</div>`;
+
+    // Host & Co-Host selection (from registered users)
+    h += `<h4 style="font-size:13px;text-transform:uppercase;color:var(--text-light);margin:12px 0 8px">Host & Co-Host (Scorers)</h4>`;
+    h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">`;
+    h += `<div><label style="font-size:12px;color:var(--text-light)">🎙️ Host</label>
+      <select id="selHost" style="width:100%;padding:8px;border:2px solid var(--border);border-radius:6px" onchange="setHost(${tid})">
+        <option value="0">— None —</option>
+        ${allUsers.map(u => `<option value="${u.id}"${team.host_id === u.id ? ' selected' : ''}>${u.name}</option>`).join('')}
+      </select></div>`;
+    h += `<div><label style="font-size:12px;color:var(--text-light)">🎤 Co-Host</label>
+      <select id="selCohost" style="width:100%;padding:8px;border:2px solid var(--border);border-radius:6px" onchange="setHost(${tid})">
+        <option value="0">— None —</option>
+        ${allUsers.map(u => `<option value="${u.id}"${team.cohost_id === u.id ? ' selected' : ''}>${u.name}</option>`).join('')}
       </select></div>`;
     h += `</div>`;
   } else {
@@ -200,6 +221,26 @@ async function setCaptain(tid) {
   });
   if (res && res.id) {
     toast('Captain updated!', 'success');
+    allTeams = await api('/teams/');
+    renderTeams();
+  } else {
+    toast(res?.detail || 'Error', 'error');
+  }
+}
+
+async function setHost(tid) {
+  const hostId = parseInt(el('selHost').value) || 0;
+  const cohostId = parseInt(el('selCohost').value) || 0;
+  if (hostId && cohostId && hostId === cohostId) {
+    toast('Host and Co-Host must be different users', 'error');
+    return;
+  }
+  const res = await api(`/teams/${tid}/host`, 'POST', {
+    host_id: hostId,
+    cohost_id: cohostId
+  });
+  if (res && res.id) {
+    toast('Host updated!', 'success');
     allTeams = await api('/teams/');
     renderTeams();
   } else {

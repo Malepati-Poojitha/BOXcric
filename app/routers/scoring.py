@@ -1,17 +1,46 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.ball import Ball
+from app.models.innings import Innings
+from app.models.match import Match
+from app.models.team import Team
 from app.schemas.score import BallInput, BallOut, LiveScoreOut, ScorecardOut
 from app.services.scoring import record_ball, get_live_score, get_scorecard
+from app.auth import get_current_user_from_cookie
 
 router = APIRouter(prefix="/scoring", tags=["Live Scoring"])
 
 
+def _check_scorer_permission(db: Session, match_id: int, user_id: int):
+    """Check if user is host or co-host of either team in the match."""
+    match = db.query(Match).filter(Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    team1 = db.query(Team).filter(Team.id == match.team1_id).first()
+    team2 = db.query(Team).filter(Team.id == match.team2_id).first()
+    allowed_ids = set()
+    for t in [team1, team2]:
+        if t:
+            if t.host_id:
+                allowed_ids.add(t.host_id)
+            if t.cohost_id:
+                allowed_ids.add(t.cohost_id)
+    if not allowed_ids:
+        return  # No hosts set yet — allow anyone (backward compatible)
+    if user_id not in allowed_ids:
+        raise HTTPException(status_code=403, detail="Only team hosts or co-hosts can score matches")
+
+
 @router.post("/innings/{innings_id}/ball", response_model=BallOut)
-def add_ball(innings_id: int, data: BallInput, db: Session = Depends(get_db)):
-    """Record a ball delivery for live scoring."""
+def add_ball(innings_id: int, data: BallInput, request: Request, db: Session = Depends(get_db)):
+    """Record a ball delivery for live scoring. Only host/co-host can score."""
+    user = get_current_user_from_cookie(request, db)
+    if user:
+        innings = db.query(Innings).filter(Innings.id == innings_id).first()
+        if innings:
+            _check_scorer_permission(db, innings.match_id, user.id)
     try:
         ball = record_ball(db, innings_id, data)
         return ball

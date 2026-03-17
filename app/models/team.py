@@ -19,6 +19,8 @@ class Team(Base):
     short_name = Column(String(10), nullable=True)
     captain_id = Column(Integer, ForeignKey("players.id"), nullable=True)
     vice_captain_id = Column(Integer, ForeignKey("players.id"), nullable=True)
+    host_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    cohost_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     players = relationship("Player", secondary="team_players", lazy="joined")
     captain = relationship("Player", foreign_keys=[captain_id], lazy="joined")
     vice_captain = relationship("Player", foreign_keys=[vice_captain_id], lazy="joined")
