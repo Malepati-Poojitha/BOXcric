@@ -208,21 +208,23 @@ async function setCaptain(tid) {
 }
 
 async function removeFromTeam(tid, pid) {
-  if (!confirm('Remove this player from the team?')) return;
-  await api(`/teams/${tid}/players/${pid}`, 'DELETE');
-  toast('Player removed', 'success');
-  allTeams = await api('/teams/');
-  renderTeams();
-  viewTeamDetail(tid);
+  confirmAction('Remove this player from the team?', async function() {
+    await api(`/teams/${tid}/players/${pid}`, 'DELETE');
+    toast('Player removed', 'success');
+    allTeams = await api('/teams/');
+    renderTeams();
+    viewTeamDetail(tid);
+  });
 }
 
 async function deleteTeam(tid) {
-  if (!confirm('Delete this team?')) return;
-  await api(`/teams/${tid}`, 'DELETE');
-  el('teamDetailModal').classList.remove('open');
-  toast('Team deleted', 'success');
-  allTeams = await api('/teams/');
-  renderTeams();
+  confirmAction('Delete this team?', async function() {
+    await api(`/teams/${tid}`, 'DELETE');
+    el('teamDetailModal').classList.remove('open');
+    toast('Team deleted', 'success');
+    allTeams = await api('/teams/');
+    renderTeams();
+  });
 }
 </script>
 {% endblock %}

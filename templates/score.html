@@ -417,20 +417,8 @@ async function confirmWicket() {
     });
 
     if (availableBatters.length === 0) {
-      // Last man standing — ask admin
-      var allowSingle = confirm(
-        '⚠️ LAST MAN STANDING!\n\n' +
-        'Only 1 batter remaining. No new batsman available.\n\n' +
-        'Allow single batting (last man continues alone)?\n\n' +
-        'YES = Continue innings with last batter\n' +
-        'NO = End innings now'
-      );
-      if (!allowSingle) {
-        // End innings
-        toast('Innings ended — no batsman available', 'info');
-        await refreshScore();
-        return;
-      } else {
+      // Last man standing — ask admin via popup
+      confirmAction('LAST MAN STANDING! Only 1 batter remaining. Allow last man to continue batting alone?', async function() {
         // Continue with last man — set dismissed player's slot to null
         if (dismissedId === striker) {
           striker = null;
@@ -440,8 +428,8 @@ async function confirmWicket() {
         saveSelections();
         toast('Last man batting! Innings continues.', 'info');
         await refreshScore();
-        return;
-      }
+      });
+      return;
     }
 
     // Normal — prompt for new batter
@@ -573,7 +561,7 @@ async function refreshScore() {
 }
 
 async function switchInnings() {
-  if (!confirm('Switch to next innings? This will mark current innings as complete.')) return;
+  confirmAction('Switch to next innings? This will mark current innings as complete.', async function() {
   // Mark current innings complete by ending match temporarily — but we actually need
   // to just reload and pick the next innings
   const nextInn = matchData.innings.find(i => i.id !== currentInnings.id && !i.is_completed);
@@ -590,13 +578,15 @@ async function switchInnings() {
   } else {
     toast('No other innings available', 'error');
   }
+  });
 }
 
 async function endMatchFromScore() {
-  if (!confirm('End this match and calculate result?')) return;
-  await api(`/matches/${MATCH_ID}/end`, 'POST');
-  toast('Match ended!', 'success');
-  setTimeout(() => { window.location.href = `/admin/match/${MATCH_ID}`; }, 1000);
+  confirmAction('End this match and calculate result?', async function() {
+    await api(`/matches/${MATCH_ID}/end`, 'POST');
+    toast('Match ended!', 'success');
+    setTimeout(() => { window.location.href = `/admin/match/${MATCH_ID}`; }, 1000);
+  });
 }
 
 function addRecentBall(runs, extraType, isWicket, extraRuns) {

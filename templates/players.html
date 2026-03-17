@@ -184,11 +184,12 @@ async function viewPlayerStats(pid) {
 }
 
 async function deletePlayer(pid) {
-  if (!confirm('Delete this player?')) return;
-  await api(`/players/${pid}`, 'DELETE');
-  el('playerStatsModal').classList.remove('open');
-  toast('Player deleted', 'success');
-  await loadPlayers();
+  confirmAction('Delete this player?', async function() {
+    await api(`/players/${pid}`, 'DELETE');
+    el('playerStatsModal').classList.remove('open');
+    toast('Player deleted', 'success');
+    await loadPlayers();
+  });
 }
 </script>
 {% endblock %}

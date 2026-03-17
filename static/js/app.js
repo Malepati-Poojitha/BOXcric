@@ -185,6 +185,32 @@ function closeModal() {
   if (m) m.classList.remove('open');
 }
 
+function confirmAction(message, onYes) {
+  let backdrop = el('confirmPopup');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.id = 'confirmPopup';
+    backdrop.innerHTML = `<div class="modal" style="max-width:380px">
+      <div class="modal-body" style="text-align:center;padding:28px 24px">
+        <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+        <p id="confirmMsg" style="font-size:15px;font-weight:600;margin-bottom:20px"></p>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button class="btn btn-outline" onclick="el('confirmPopup').classList.remove('open')" style="min-width:90px">Cancel</button>
+          <button class="btn btn-primary" id="confirmYesBtn" style="min-width:90px;background:#e63946;border-color:#e63946">Yes, Do It</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(backdrop);
+  }
+  el('confirmMsg').textContent = message;
+  el('confirmYesBtn').onclick = function() {
+    backdrop.classList.remove('open');
+    onYes();
+  };
+  backdrop.classList.add('open');
+}
+
 // --- Hamburger (mobile nav) ---
 function toggleNav() {
   const nav = el('mainNav');

@@ -73,15 +73,15 @@ function renderUsers() {
 }
 
 function deleteUser(id, name) {
-  if (!confirm('Delete user "' + name + '"? This cannot be undone.')) return;
-
-  api('/api/user/' + id, 'DELETE').then(function(res) {
-    if (res && res.detail) {
-      toast(res.detail, 'success');
-      loadUsers();
-    } else {
-      toast(res && res.detail ? res.detail : 'Failed to delete', 'error');
-    }
+  confirmAction('Delete user "' + name + '"? This cannot be undone.', function() {
+    api('/api/user/' + id, 'DELETE').then(function(res) {
+      if (res && res.detail) {
+        toast(res.detail, 'success');
+        loadUsers();
+      } else {
+        toast(res && res.detail ? res.detail : 'Failed to delete', 'error');
+      }
+    });
   });
 }
 

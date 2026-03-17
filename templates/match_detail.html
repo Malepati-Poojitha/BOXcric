@@ -550,29 +550,32 @@ async function showTossModal() {
 }
 
 async function startMatch() {
-  if (!confirm('Start this match?')) return;
-  await api(`/matches/${MATCH_ID}/start`, 'POST');
-  toast('Match started! 🏏', 'success');
-  await loadMatch();
+  confirmAction('Start this match?', async function() {
+    await api(`/matches/${MATCH_ID}/start`, 'POST');
+    toast('Match started! 🏏', 'success');
+    await loadMatch();
+  });
 }
 
 async function endMatch() {
-  if (!confirm('End this match? This will finalize the result.')) return;
-  await api(`/matches/${MATCH_ID}/end`, 'POST');
-  await api(`/api/features/milestones/check/${MATCH_ID}`);
-  toast('Match completed!', 'success');
-  await loadMatch();
+  confirmAction('End this match? This will finalize the result.', async function() {
+    await api(`/matches/${MATCH_ID}/end`, 'POST');
+    await api(`/api/features/milestones/check/${MATCH_ID}`);
+    toast('Match completed!', 'success');
+    await loadMatch();
+  });
 }
 
 async function startSuperOver() {
-  if (!confirm('Start a Super Over? Both teams will bat 1 over each.')) return;
-  var res = await api('/matches/' + MATCH_ID + '/super-over', 'POST');
-  if (res && res.id) {
-    toast('⚡ Super Over started!', 'success');
-    await loadMatch();
-  } else {
-    toast(res && res.detail ? res.detail : 'Failed', 'error');
-  }
+  confirmAction('Start a Super Over? Both teams will bat 1 over each.', async function() {
+    var res = await api('/matches/' + MATCH_ID + '/super-over', 'POST');
+    if (res && res.id) {
+      toast('⚡ Super Over started!', 'success');
+      await loadMatch();
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed', 'error');
+    }
+  });
 }
 
 // ===== REACTIONS =====
@@ -675,9 +678,10 @@ async function uploadMatchPhoto(input) {
   loadPhotos();
 }
 async function deletePhoto(id) {
-  if (!confirm('Delete this photo?')) return;
-  await api('/api/features/photos/' + id, 'DELETE');
-  loadPhotos();
+  confirmAction('Delete this photo?', async function() {
+    await api('/api/features/photos/' + id, 'DELETE');
+    loadPhotos();
+  });
 }
 
 // ===== MILESTONES =====
@@ -698,10 +702,11 @@ async function loadMilestones() {
 
 // ===== UNDO =====
 async function undoLastBall(innId) {
-  if (!confirm('Undo the last ball? This cannot be reversed.')) return;
-  var res = await api('/api/features/undo/' + innId, 'DELETE');
-  toast(res.detail || 'Ball undone', 'success');
-  await loadMatch();
+  confirmAction('Undo the last ball? This cannot be reversed.', async function() {
+    var res = await api('/api/features/undo/' + innId, 'DELETE');
+    toast(res.detail || 'Ball undone', 'success');
+    await loadMatch();
+  });
 }
 </script>
 {% endblock %}

@@ -172,10 +172,11 @@ function uploadVideoFile() {
 }
 
 function deleteVideo(id) {
-  if (!confirm('Delete this video?')) return;
-  api('/api/videos/' + id, 'DELETE').then(function(res) {
-    toast('Video deleted', 'success');
-    loadVideos();
+  confirmAction('Delete this video?', function() {
+    api('/api/videos/' + id, 'DELETE').then(function(res) {
+      toast('Video deleted', 'success');
+      loadVideos();
+    });
   });
 }
 </script>
