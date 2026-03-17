@@ -18,28 +18,34 @@ from app.models.player import Player
 Base.metadata.create_all(bind=engine)
 
 # Migrate: add user_id column to players table if missing
-from sqlalchemy import inspect, text
-insp = inspect(engine)
-if "players" in insp.get_table_names():
-    cols = [c["name"] for c in insp.get_columns("players")]
-    if "user_id" not in cols:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE players ADD COLUMN user_id INTEGER REFERENCES users(id)"))
+try:
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    if "players" in insp.get_table_names():
+        cols = [c["name"] for c in insp.get_columns("players")]
+        if "user_id" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE players ADD COLUMN user_id INTEGER"))
+            print("[MIGRATE] Added user_id column to players table")
+except Exception as e:
+    print(f"[MIGRATE] Warning: {e}")
 
 # Sync existing users with completed profiles to players
-def _sync_existing_users():
-    from app.routers.user_auth import sync_user_to_player
-    db = SessionLocal()
-    try:
-        users = db.query(User).filter(User.profile_complete == True).all()
-        for u in users:
-            existing = db.query(Player).filter(Player.user_id == u.id).first()
-            if not existing:
-                sync_user_to_player(u, db)
-    finally:
-        db.close()
-
-_sync_existing_users()
+try:
+    def _sync_existing_users():
+        from app.routers.user_auth import sync_user_to_player
+        db = SessionLocal()
+        try:
+            users = db.query(User).filter(User.profile_complete == True).all()
+            for u in users:
+                existing = db.query(Player).filter(Player.user_id == u.id).first()
+                if not existing:
+                    sync_user_to_player(u, db)
+        finally:
+            db.close()
+    _sync_existing_users()
+except Exception as e:
+    print(f"[SYNC] Warning: {e}")
 
 app = FastAPI(
     title=APP_TITLE,
