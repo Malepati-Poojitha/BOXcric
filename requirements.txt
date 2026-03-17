@@ -8,3 +8,4 @@ python-multipart
 bcrypt
 python-jose[cryptography]
 python-dotenv
+psycopg2-binary

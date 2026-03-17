@@ -11,16 +11,27 @@ class TeamCreate(BaseModel):
 class TeamUpdate(BaseModel):
     name: Optional[str] = None
     short_name: Optional[str] = None
+    captain_id: Optional[int] = None
+    vice_captain_id: Optional[int] = None
 
 
 class TeamAddPlayer(BaseModel):
     player_id: int
 
 
+class TeamSetCaptain(BaseModel):
+    captain_id: Optional[int] = None
+    vice_captain_id: Optional[int] = None
+
+
 class TeamOut(BaseModel):
     id: int
     name: str
     short_name: Optional[str] = None
+    captain_id: Optional[int] = None
+    vice_captain_id: Optional[int] = None
+    captain: Optional[PlayerOut] = None
+    vice_captain: Optional[PlayerOut] = None
     players: List[PlayerOut] = []
 
     model_config = {"from_attributes": True}

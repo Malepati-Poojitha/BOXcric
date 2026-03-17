@@ -5,7 +5,7 @@ from typing import List
 from app.database import get_db
 from app.models.team import Team, TeamPlayer
 from app.models.player import Player
-from app.schemas.team import TeamCreate, TeamUpdate, TeamAddPlayer, TeamOut
+from app.schemas.team import TeamCreate, TeamUpdate, TeamAddPlayer, TeamSetCaptain, TeamOut
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
@@ -88,3 +88,17 @@ def delete_team(team_id: int, db: Session = Depends(get_db)):
     db.delete(team)
     db.commit()
     return {"detail": "Team deleted"}
+
+
+@router.post("/{team_id}/captain", response_model=TeamOut)
+def set_captain(team_id: int, data: TeamSetCaptain, db: Session = Depends(get_db)):
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    if data.captain_id is not None:
+        team.captain_id = data.captain_id if data.captain_id > 0 else None
+    if data.vice_captain_id is not None:
+        team.vice_captain_id = data.vice_captain_id if data.vice_captain_id > 0 else None
+    db.commit()
+    db.refresh(team)
+    return team

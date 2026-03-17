@@ -17,16 +17,30 @@ from app.models.player import Player
 # Create all tables
 Base.metadata.create_all(bind=engine)
 
-# Migrate: add user_id column to players table if missing
+# Migrate: add missing columns
 try:
     from sqlalchemy import inspect, text
     insp = inspect(engine)
+
+    # Add user_id to players
     if "players" in insp.get_table_names():
         cols = [c["name"] for c in insp.get_columns("players")]
         if "user_id" not in cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE players ADD COLUMN user_id INTEGER"))
             print("[MIGRATE] Added user_id column to players table")
+
+    # Add captain_id and vice_captain_id to teams
+    if "teams" in insp.get_table_names():
+        cols = [c["name"] for c in insp.get_columns("teams")]
+        if "captain_id" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE teams ADD COLUMN captain_id INTEGER"))
+            print("[MIGRATE] Added captain_id column to teams table")
+        if "vice_captain_id" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE teams ADD COLUMN vice_captain_id INTEGER"))
+            print("[MIGRATE] Added vice_captain_id column to teams table")
 except Exception as e:
     print(f"[MIGRATE] Warning: {e}")
 
