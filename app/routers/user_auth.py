@@ -226,7 +226,10 @@ def update_profile(data: ProfileUpdate, request: Request, db: Session = Depends(
     db.refresh(user)
 
     # Sync user profile to linked Player record
-    sync_user_to_player(user, db)
+    try:
+        sync_user_to_player(user, db)
+    except Exception as e:
+        print(f"[SYNC] Warning: {e}")
 
     return user
 

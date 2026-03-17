@@ -208,32 +208,44 @@ def user_login(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/app/matches", include_in_schema=False)
 def user_matches(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("user/matches.html", _user_ctx(request, db, "matches"))
+    ctx = _user_ctx(request, db, "matches")
+    if hasattr(ctx, 'status_code'): return ctx
+    return templates.TemplateResponse("user/matches.html", ctx)
 
 
 @app.get("/app/match/{match_id}", include_in_schema=False)
 def user_match_detail(request: Request, match_id: int, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("user/match_detail.html", _user_ctx(request, db, "matches", match_id=match_id))
+    ctx = _user_ctx(request, db, "matches", match_id=match_id)
+    if hasattr(ctx, 'status_code'): return ctx
+    return templates.TemplateResponse("user/match_detail.html", ctx)
 
 
 @app.get("/app/players", include_in_schema=False)
 def user_players(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("user/players.html", _user_ctx(request, db, "players"))
+    ctx = _user_ctx(request, db, "players")
+    if hasattr(ctx, 'status_code'): return ctx
+    return templates.TemplateResponse("user/players.html", ctx)
 
 
 @app.get("/app/records", include_in_schema=False)
 def user_records(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("user/records.html", _user_ctx(request, db, "records"))
+    ctx = _user_ctx(request, db, "records")
+    if hasattr(ctx, 'status_code'): return ctx
+    return templates.TemplateResponse("user/records.html", ctx)
 
 
 @app.get("/app/videos", include_in_schema=False)
 def user_videos(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("user/videos.html", _user_ctx(request, db, "videos"))
+    ctx = _user_ctx(request, db, "videos")
+    if hasattr(ctx, 'status_code'): return ctx
+    return templates.TemplateResponse("user/videos.html", ctx)
 
 
 @app.get("/app/rankings", include_in_schema=False)
 def user_rankings(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("user/rankings.html", _user_ctx(request, db, "rankings"))
+    ctx = _user_ctx(request, db, "rankings")
+    if hasattr(ctx, 'status_code'): return ctx
+    return templates.TemplateResponse("user/rankings.html", ctx)
 
 
 @app.get("/app/profile", include_in_schema=False)

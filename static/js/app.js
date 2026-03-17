@@ -206,7 +206,7 @@ function confirmAction(message, onYes) {
   el('confirmMsg').textContent = message;
   el('confirmYesBtn').onclick = function() {
     backdrop.classList.remove('open');
-    onYes();
+    try { onYes(); } catch(e) { console.error(e); }
   };
   backdrop.classList.add('open');
 }
