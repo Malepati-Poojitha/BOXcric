@@ -88,10 +88,7 @@ _keep_alive_task = None
 
 async def _keep_alive():
     """Ping our own /health endpoint every 10 minutes to stay warm."""
-    render_url = os.getenv("RENDER_EXTERNAL_URL", "")
-    if not render_url:
-        print("[KEEP-ALIVE] RENDER_EXTERNAL_URL not set, skipping self-ping")
-        return
+    render_url = os.getenv("RENDER_EXTERNAL_URL", "https://boxcric.onrender.com")
     health_url = f"{render_url}/health"
     print(f"[KEEP-ALIVE] Will ping {health_url} every 10 min")
     while True:
