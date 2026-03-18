@@ -1,4 +1,7 @@
 import os
+import asyncio
+import urllib.request
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -78,6 +81,45 @@ app = FastAPI(
     version=APP_VERSION,
     description=APP_DESCRIPTION,
 )
+
+
+# ── Keep-alive: self-ping every 10 min so Render doesn't sleep ──
+_keep_alive_task = None
+
+async def _keep_alive():
+    """Ping our own /health endpoint every 10 minutes to stay warm."""
+    render_url = os.getenv("RENDER_EXTERNAL_URL", "")
+    if not render_url:
+        print("[KEEP-ALIVE] RENDER_EXTERNAL_URL not set, skipping self-ping")
+        return
+    health_url = f"{render_url}/health"
+    print(f"[KEEP-ALIVE] Will ping {health_url} every 10 min")
+    while True:
+        await asyncio.sleep(600)  # 10 minutes
+        try:
+            req = urllib.request.Request(health_url, method="GET")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                resp.read()
+            print("[KEEP-ALIVE] Ping OK")
+        except Exception as e:
+            print(f"[KEEP-ALIVE] Ping failed: {e}")
+
+@app.on_event("startup")
+async def startup_keep_alive():
+    global _keep_alive_task
+    _keep_alive_task = asyncio.create_task(_keep_alive())
+
+@app.on_event("shutdown")
+async def shutdown_keep_alive():
+    global _keep_alive_task
+    if _keep_alive_task:
+        _keep_alive_task.cancel()
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 
 # Static files & templates
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
