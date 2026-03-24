@@ -152,57 +152,57 @@ app.include_router(notifications.router)
 # ===== ADMIN Pages (full control) =====
 @app.get("/admin", include_in_schema=False)
 def admin_home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "active": "home"})
+    return templates.TemplateResponse(request, "index.html", {"active": "home"})
 
 
 @app.get("/admin/matches", include_in_schema=False)
 def admin_matches(request: Request):
-    return templates.TemplateResponse("matches.html", {"request": request, "active": "matches"})
+    return templates.TemplateResponse(request, "matches.html", {"active": "matches"})
 
 
 @app.get("/admin/match/{match_id}", include_in_schema=False)
 def admin_match_detail(request: Request, match_id: int):
-    return templates.TemplateResponse("match_detail.html", {"request": request, "active": "matches", "match_id": match_id})
+    return templates.TemplateResponse(request, "match_detail.html", {"active": "matches", "match_id": match_id})
 
 
 @app.get("/admin/score/{match_id}", include_in_schema=False)
 def admin_score(request: Request, match_id: int):
-    return templates.TemplateResponse("score.html", {"request": request, "active": "matches", "match_id": match_id})
+    return templates.TemplateResponse(request, "score.html", {"active": "matches", "match_id": match_id})
 
 
 @app.get("/admin/new-match", include_in_schema=False)
 def admin_new_match(request: Request):
-    return templates.TemplateResponse("new_match.html", {"request": request, "active": "matches"})
+    return templates.TemplateResponse(request, "new_match.html", {"active": "matches"})
 
 
 @app.get("/admin/players", include_in_schema=False)
 def admin_players(request: Request):
-    return templates.TemplateResponse("players.html", {"request": request, "active": "players"})
+    return templates.TemplateResponse(request, "players.html", {"active": "players"})
 
 
 @app.get("/admin/teams", include_in_schema=False)
 def admin_teams(request: Request):
-    return templates.TemplateResponse("teams.html", {"request": request, "active": "teams"})
+    return templates.TemplateResponse(request, "teams.html", {"active": "teams"})
 
 
 @app.get("/admin/records", include_in_schema=False)
 def admin_records(request: Request):
-    return templates.TemplateResponse("records.html", {"request": request, "active": "records"})
+    return templates.TemplateResponse(request, "records.html", {"active": "records"})
 
 
 @app.get("/admin/videos", include_in_schema=False)
 def admin_videos(request: Request):
-    return templates.TemplateResponse("videos.html", {"request": request, "active": "videos"})
+    return templates.TemplateResponse(request, "videos.html", {"active": "videos"})
 
 
 @app.get("/admin/rankings", include_in_schema=False)
 def admin_rankings(request: Request):
-    return templates.TemplateResponse("rankings.html", {"request": request, "active": "rankings"})
+    return templates.TemplateResponse(request, "rankings.html", {"active": "rankings"})
 
 
 @app.get("/admin/users", include_in_schema=False)
 def admin_users(request: Request):
-    return templates.TemplateResponse("users.html", {"request": request, "active": "users"})
+    return templates.TemplateResponse(request, "users.html", {"active": "users"})
 
 
 # ===== USER Pages (read-only, with login) =====
@@ -216,7 +216,7 @@ def _user_ctx(request: Request, db: Session, active: str, **extra):
         response = RedirectResponse(url="/app/login")
         response.delete_cookie("boxcric_token")
         return response
-    return {"request": request, "active": active, "user": user, **extra}
+    return {"active": active, "user": user, **extra}
 
 
 @app.get("/", include_in_schema=False)
@@ -235,7 +235,7 @@ def user_home(request: Request, db: Session = Depends(get_db)):
     if user and not user.profile_complete:
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/app/login")
-    return templates.TemplateResponse("user/home.html", ctx)
+    return templates.TemplateResponse(request, "user/home.html", ctx)
 
 
 @app.get("/app/login", include_in_schema=False)
@@ -257,49 +257,49 @@ def user_login(request: Request, db: Session = Depends(get_db)):
     if user and user.profile_complete:
         return RedirectResponse(url="/app")
     # Logged in but profile incomplete — stay on login page (shows profile setup)
-    return templates.TemplateResponse("user/login.html", {"request": request, "active": "login", "user": user})
+    return templates.TemplateResponse(request, "user/login.html", {"active": "login", "user": user})
 
 
 @app.get("/app/matches", include_in_schema=False)
 def user_matches(request: Request, db: Session = Depends(get_db)):
     ctx = _user_ctx(request, db, "matches")
     if hasattr(ctx, 'status_code'): return ctx
-    return templates.TemplateResponse("user/matches.html", ctx)
+    return templates.TemplateResponse(request, "user/matches.html", ctx)
 
 
 @app.get("/app/match/{match_id}", include_in_schema=False)
 def user_match_detail(request: Request, match_id: int, db: Session = Depends(get_db)):
     ctx = _user_ctx(request, db, "matches", match_id=match_id)
     if hasattr(ctx, 'status_code'): return ctx
-    return templates.TemplateResponse("user/match_detail.html", ctx)
+    return templates.TemplateResponse(request, "user/match_detail.html", ctx)
 
 
 @app.get("/app/players", include_in_schema=False)
 def user_players(request: Request, db: Session = Depends(get_db)):
     ctx = _user_ctx(request, db, "players")
     if hasattr(ctx, 'status_code'): return ctx
-    return templates.TemplateResponse("user/players.html", ctx)
+    return templates.TemplateResponse(request, "user/players.html", ctx)
 
 
 @app.get("/app/records", include_in_schema=False)
 def user_records(request: Request, db: Session = Depends(get_db)):
     ctx = _user_ctx(request, db, "records")
     if hasattr(ctx, 'status_code'): return ctx
-    return templates.TemplateResponse("user/records.html", ctx)
+    return templates.TemplateResponse(request, "user/records.html", ctx)
 
 
 @app.get("/app/videos", include_in_schema=False)
 def user_videos(request: Request, db: Session = Depends(get_db)):
     ctx = _user_ctx(request, db, "videos")
     if hasattr(ctx, 'status_code'): return ctx
-    return templates.TemplateResponse("user/videos.html", ctx)
+    return templates.TemplateResponse(request, "user/videos.html", ctx)
 
 
 @app.get("/app/rankings", include_in_schema=False)
 def user_rankings(request: Request, db: Session = Depends(get_db)):
     ctx = _user_ctx(request, db, "rankings")
     if hasattr(ctx, 'status_code'): return ctx
-    return templates.TemplateResponse("user/rankings.html", ctx)
+    return templates.TemplateResponse(request, "user/rankings.html", ctx)
 
 
 @app.get("/app/profile", include_in_schema=False)
@@ -310,7 +310,7 @@ def user_profile(request: Request, db: Session = Depends(get_db)):
     if not ctx.get("user"):
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/app/login")
-    return templates.TemplateResponse("user/profile.html", ctx)
+    return templates.TemplateResponse(request, "user/profile.html", ctx)
 
 
 # ===== PWA: Serve service worker from root scope =====
