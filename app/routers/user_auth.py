@@ -148,10 +148,16 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{user_id}/toggle-admin")
 def toggle_admin(user_id: int, request: Request, db: Session = Depends(get_db)):
-    """Toggle admin status. Only admins can do this."""
+    """Toggle admin status. Only admins can do this. First admin can be bootstrapped if no admins exist."""
     caller = get_current_user_from_cookie(request, db)
-    if not caller or not caller.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+    # Allow bootstrap: if no admins exist yet, any logged-in user can make themselves admin
+    has_any_admin = db.query(User).filter(User.is_admin == True).first()
+    if has_any_admin:
+        if not caller or not caller.is_admin:
+            raise HTTPException(status_code=403, detail="Admin access required")
+    else:
+        if not caller:
+            raise HTTPException(status_code=401, detail="Login required")
     target = db.query(User).filter(User.id == user_id).first()
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
