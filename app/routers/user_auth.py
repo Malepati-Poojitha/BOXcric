@@ -363,3 +363,17 @@ def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
     user.hashed_password = hash_password(data.new_password)
     db.commit()
     return {"detail": "Password reset successfully. You can now login."}
+
+
+@router.post("/admin/bootstrap")
+def bootstrap_first_admin(request: Request, db: Session = Depends(get_db)):
+    """Make the current logged-in user the first admin. Only works if no admins exist."""
+    existing_admin = db.query(User).filter(User.is_admin == True).first()
+    if existing_admin:
+        raise HTTPException(status_code=400, detail="An admin already exists")
+    user = get_current_user_from_cookie(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Login first")
+    user.is_admin = True
+    db.commit()
+    return {"detail": f"{user.name} is now the first admin"}
