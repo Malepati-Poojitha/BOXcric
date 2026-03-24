@@ -58,6 +58,14 @@ def get_current_user_from_cookie(request: Request, db: Session = Depends(get_db)
     return user
 
 
+def require_admin(request: Request, db: Session = Depends(get_db)):
+    """Require the current user to be an admin. Raises 403 if not."""
+    user = get_current_user_from_cookie(request, db)
+    if not user or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
 def generate_otp(identifier: str, user_id: int) -> str:
     """Generate a 6-digit OTP for the given identifier (email or phone)."""
     otp = str(random.randint(100000, 999999))

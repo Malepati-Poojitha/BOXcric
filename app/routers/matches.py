@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
@@ -9,12 +9,14 @@ from app.models.innings import Innings
 from app.models.team import Team
 from app.schemas.match import MatchCreate, MatchToss, MatchOut
 from app.services.notifications import notify_match_users
+from app.auth import require_admin
 
 router = APIRouter(prefix="/matches", tags=["Matches"])
 
 
 @router.post("/", response_model=MatchOut)
-def create_match(data: MatchCreate, db: Session = Depends(get_db)):
+def create_match(data: MatchCreate, request: Request, db: Session = Depends(get_db)):
+    require_admin(request, db)
     if data.team1_id == data.team2_id:
         raise HTTPException(status_code=400, detail="A team cannot play against itself")
     for tid in [data.team1_id, data.team2_id]:
@@ -54,7 +56,8 @@ def get_match(match_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{match_id}/toss", response_model=MatchOut)
-def record_toss(match_id: int, data: MatchToss, db: Session = Depends(get_db)):
+def record_toss(match_id: int, data: MatchToss, request: Request, db: Session = Depends(get_db)):
+    require_admin(request, db)
     match = db.query(Match).filter(Match.id == match_id).first()
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -95,7 +98,8 @@ def record_toss(match_id: int, data: MatchToss, db: Session = Depends(get_db)):
 
 
 @router.post("/{match_id}/start", response_model=MatchOut)
-def start_match(match_id: int, db: Session = Depends(get_db)):
+def start_match(match_id: int, request: Request, db: Session = Depends(get_db)):
+    require_admin(request, db)
     match = db.query(Match).filter(Match.id == match_id).first()
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -113,7 +117,8 @@ def start_match(match_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{match_id}/end", response_model=MatchOut)
-def end_match(match_id: int, db: Session = Depends(get_db)):
+def end_match(match_id: int, request: Request, db: Session = Depends(get_db)):
+    require_admin(request, db)
     match = db.query(Match).filter(Match.id == match_id).first()
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -148,8 +153,9 @@ def end_match(match_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{match_id}/super-over", response_model=MatchOut)
-def start_super_over(match_id: int, db: Session = Depends(get_db)):
+def start_super_over(match_id: int, request: Request, db: Session = Depends(get_db)):
     """Start a super over for a tied match."""
+    require_admin(request, db)
     match = db.query(Match).filter(Match.id == match_id).first()
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")

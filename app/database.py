@@ -37,34 +37,6 @@ if _is_libsql:
         except Exception as e:
             print(f"[TURSO] Sync error: {e}")
 
-    def sync_to_turso():
-        """Sync local replica schema and data to Turso cloud."""
-        try:
-            import sqlite3
-            # Read all DDL from the local file
-            local = sqlite3.connect("turso_replica.db")
-            schemas = local.execute(
-                "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL"
-            ).fetchall()
-            local.close()
-            # Replay DDL to Turso via libsql (so it reaches the cloud)
-            direct = libsql.connect(
-                _parsed.hostname, auth_token=_auth_token
-            )
-            for (sql,) in schemas:
-                # Convert CREATE TABLE to IF NOT EXISTS
-                safe_sql = sql.replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ")
-                safe_sql = safe_sql.replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS ")
-                try:
-                    direct.execute(safe_sql)
-                except Exception:
-                    pass  # table/index already exists
-            direct.commit()
-            direct.close()
-            print("[TURSO] Schema synced to cloud")
-        except Exception as e:
-            print(f"[TURSO] Schema sync error: {e}")
-
 elif _is_sqlite:
     engine = create_engine(
         DATABASE_URL,

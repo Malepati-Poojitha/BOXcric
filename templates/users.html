@@ -35,7 +35,7 @@ function renderUsers() {
 
   var html = '<div class="card"><div class="card-body" style="overflow-x:auto;padding:0">';
   html += '<table class="scorecard-table"><thead><tr>';
-  html += '<th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Gender</th><th>Bat</th><th>Bowl</th><th>Joined</th><th>Admin</th><th>Action</th>';
+  html += '<th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Gender</th><th>Bat</th><th>Bowl</th><th>Admin</th><th>Joined</th><th>Action</th>';
   html += '</tr></thead><tbody>';
 
   for (var i = 0; i < users.length; i++) {
@@ -63,16 +63,16 @@ function renderUsers() {
     html += '<td class="text-sm">' + (u.gender ? capitalize(u.gender) : '-') + '</td>';
     html += '<td class="text-sm">' + (u.batting_hand ? capitalize(u.batting_hand) : '-') + '</td>';
     html += '<td class="text-sm">' + (u.bowling_type && u.bowling_type !== 'none' ? capitalize(u.bowling_type) : '-') + '</td>';
+    html += '<td class="text-sm">' + (u.is_admin ? '<span style="color:#1a472a;font-weight:700">✅ Admin</span>' : '<span style="color:var(--text-muted)">User</span>') + '</td>';
     html += '<td class="text-sm">' + joined + '</td>';
-    html += '<td>';
+    html += '<td style="white-space:nowrap">';
     if (u.is_admin) {
-      html += '<span class="badge badge-live" style="font-size:10px">ADMIN</span> ';
-      html += '<button class="btn btn-sm" style="color:var(--text-muted);background:none;border:none;cursor:pointer;font-size:11px" onclick="toggleAdmin(' + u.id + ')">Remove</button>';
+      html += '<button class="btn btn-sm" style="color:#e63946;background:none;border:none;cursor:pointer;font-weight:600" onclick="demoteAdmin(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">🚫 Remove Admin</button>';
     } else {
-      html += '<button class="btn btn-sm" style="color:var(--primary);background:none;border:none;cursor:pointer;font-size:11px;font-weight:600" onclick="toggleAdmin(' + u.id + ')">Make Admin</button>';
+      html += '<button class="btn btn-sm" style="color:#1a472a;background:none;border:none;cursor:pointer;font-weight:600" onclick="promoteAdmin(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">👑 Make Admin</button>';
     }
+    html += ' <button class="btn btn-sm" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600" onclick="deleteUser(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">🗑 Delete</button>';
     html += '</td>';
-    html += '<td><button class="btn btn-sm" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600" onclick="deleteUser(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">🗑 Delete</button></td>';
     html += '</tr>';
   }
 
@@ -93,14 +93,29 @@ function deleteUser(id, name) {
   });
 }
 
-function toggleAdmin(id) {
-  api('/api/user/' + id + '/toggle-admin', 'POST').then(function(res) {
-    if (res && res.detail) {
-      toast(res.detail, 'success');
-      loadUsers();
-    } else {
-      toast(res && res.detail ? res.detail : 'Failed', 'error');
-    }
+function promoteAdmin(id, name) {
+  confirmAction('Make "' + name + '" an admin? They will have full access to create, edit, and delete everything.', function() {
+    api('/api/user/admin/promote/' + id, 'POST').then(function(res) {
+      if (res && res.detail) {
+        toast(res.detail, 'success');
+        loadUsers();
+      } else {
+        toast(res && res.detail ? res.detail : 'Failed', 'error');
+      }
+    });
+  });
+}
+
+function demoteAdmin(id, name) {
+  confirmAction('Remove admin rights from "' + name + '"?', function() {
+    api('/api/user/admin/demote/' + id, 'POST').then(function(res) {
+      if (res && res.detail) {
+        toast(res.detail, 'success');
+        loadUsers();
+      } else {
+        toast(res && res.detail ? res.detail : 'Failed', 'error');
+      }
+    });
   });
 }
 

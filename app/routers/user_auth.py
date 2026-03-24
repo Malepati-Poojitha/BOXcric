@@ -123,14 +123,18 @@ def logout(response: Response):
 
 
 @router.get("/all", response_model=list[UserOut])
-def list_all_users(db: Session = Depends(get_db)):
-    """List all registered users (admin use)."""
+def list_all_users(request: Request, db: Session = Depends(get_db)):
+    """List all registered users (admin only)."""
+    from app.auth import require_admin
+    require_admin(request, db)
     return db.query(User).order_by(User.created_at.desc()).all()
 
 
 @router.delete("/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_db)):
-    """Delete a user (admin use)."""
+def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
+    """Delete a user (admin only)."""
+    from app.auth import require_admin
+    admin = require_admin(request, db)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -144,41 +148,6 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.delete(user)
     db.commit()
     return {"detail": f"User '{user.name}' deleted"}
-
-
-@router.post("/{user_id}/toggle-admin")
-def toggle_admin(user_id: int, request: Request, db: Session = Depends(get_db)):
-    """Toggle admin status. Only admins can do this. First admin can be bootstrapped if no admins exist."""
-    caller = get_current_user_from_cookie(request, db)
-    # Allow bootstrap: if no admins exist yet, any logged-in user can make themselves admin
-    has_any_admin = db.query(User).filter(User.is_admin == True).first()
-    if has_any_admin:
-        if not caller or not caller.is_admin:
-            raise HTTPException(status_code=403, detail="Admin access required")
-    else:
-        if not caller:
-            raise HTTPException(status_code=401, detail="Login required")
-    target = db.query(User).filter(User.id == user_id).first()
-    if not target:
-        raise HTTPException(status_code=404, detail="User not found")
-    target.is_admin = not target.is_admin
-    db.commit()
-    action = "promoted to admin" if target.is_admin else "removed from admin"
-    return {"detail": f"{target.name} {action}", "is_admin": target.is_admin}
-
-
-@router.get("/make-first-admin/{email}")
-def make_first_admin(email: str, db: Session = Depends(get_db)):
-    """One-time bootstrap: make the first admin by email. Only works if no admins exist."""
-    has_any_admin = db.query(User).filter(User.is_admin == True).first()
-    if has_any_admin:
-        raise HTTPException(status_code=403, detail="Admin already exists. Use the admin panel.")
-    user = db.query(User).filter(User.email == email.lower().strip()).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found. Register first.")
-    user.is_admin = True
-    db.commit()
-    return {"detail": f"{user.name} is now admin!", "is_admin": True}
 
 
 @router.get("/me", response_model=UserOut)
@@ -394,3 +363,45 @@ def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
     user.hashed_password = hash_password(data.new_password)
     db.commit()
     return {"detail": "Password reset successfully. You can now login."}
+
+
+@router.post("/admin/promote/{user_id}")
+def promote_to_admin(user_id: int, request: Request, db: Session = Depends(get_db)):
+    """Promote a user to admin (admin only)."""
+    from app.auth import require_admin
+    require_admin(request, db)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_admin = True
+    db.commit()
+    return {"detail": f"{user.name} is now an admin"}
+
+
+@router.post("/admin/demote/{user_id}")
+def demote_from_admin(user_id: int, request: Request, db: Session = Depends(get_db)):
+    """Remove admin rights from a user (admin only)."""
+    from app.auth import require_admin
+    admin = require_admin(request, db)
+    if admin.id == user_id:
+        raise HTTPException(status_code=400, detail="You cannot demote yourself")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_admin = False
+    db.commit()
+    return {"detail": f"{user.name} is no longer an admin"}
+
+
+@router.post("/admin/bootstrap")
+def bootstrap_first_admin(request: Request, db: Session = Depends(get_db)):
+    """Make the current logged-in user the first admin. Only works if no admins exist."""
+    existing_admin = db.query(User).filter(User.is_admin == True).first()
+    if existing_admin:
+        raise HTTPException(status_code=400, detail="An admin already exists")
+    user = get_current_user_from_cookie(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Login first")
+    user.is_admin = True
+    db.commit()
+    return {"detail": f"{user.name} is now the first admin"}
