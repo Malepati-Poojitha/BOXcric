@@ -77,6 +77,13 @@ try:
 except Exception as e:
     print(f"[MIGRATE] Warning: {e}")
 
+# Sync schema to Turso after create_all + migrations
+try:
+    from app.database import sync_to_turso
+    sync_to_turso()
+except ImportError:
+    pass  # Not using Turso
+
 # Sync existing users with completed profiles to players
 try:
     def _sync_existing_users():

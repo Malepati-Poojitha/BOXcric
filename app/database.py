@@ -37,6 +37,14 @@ if _is_libsql:
         except Exception as e:
             print(f"[TURSO] Sync error: {e}")
 
+    def sync_to_turso():
+        """Force sync local replica back to Turso cloud."""
+        try:
+            _turso_conn.sync()
+            print("[TURSO] Synced to cloud")
+        except Exception as e:
+            print(f"[TURSO] Sync error: {e}")
+
 elif _is_sqlite:
     engine = create_engine(
         DATABASE_URL,
