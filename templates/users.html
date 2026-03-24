@@ -65,14 +65,7 @@ function renderUsers() {
     html += '<td class="text-sm">' + (u.bowling_type && u.bowling_type !== 'none' ? capitalize(u.bowling_type) : '-') + '</td>';
     html += '<td class="text-sm">' + (u.is_admin ? '<span style="color:#1a472a;font-weight:700">✅ Admin</span>' : '<span style="color:var(--text-muted)">User</span>') + '</td>';
     html += '<td class="text-sm">' + joined + '</td>';
-    html += '<td style="white-space:nowrap">';
-    if (u.is_admin) {
-      html += '<button class="btn btn-sm" style="color:#e63946;background:none;border:none;cursor:pointer;font-weight:600" onclick="demoteAdmin(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">🚫 Remove Admin</button>';
-    } else {
-      html += '<button class="btn btn-sm" style="color:#1a472a;background:none;border:none;cursor:pointer;font-weight:600" onclick="promoteAdmin(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">👑 Make Admin</button>';
-    }
-    html += ' <button class="btn btn-sm" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600" onclick="deleteUser(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">🗑 Delete</button>';
-    html += '</td>';
+    html += '<td><button class="btn btn-sm" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600" onclick="deleteUser(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">🗑 Delete</button></td>';
     html += '</tr>';
   }
 
@@ -88,32 +81,6 @@ function deleteUser(id, name) {
         loadUsers();
       } else {
         toast(res && res.detail ? res.detail : 'Failed to delete', 'error');
-      }
-    });
-  });
-}
-
-function promoteAdmin(id, name) {
-  confirmAction('Make "' + name + '" an admin? They will have full access to create, edit, and delete everything.', function() {
-    api('/api/user/admin/promote/' + id, 'POST').then(function(res) {
-      if (res && res.detail) {
-        toast(res.detail, 'success');
-        loadUsers();
-      } else {
-        toast(res && res.detail ? res.detail : 'Failed', 'error');
-      }
-    });
-  });
-}
-
-function demoteAdmin(id, name) {
-  confirmAction('Remove admin rights from "' + name + '"?', function() {
-    api('/api/user/admin/demote/' + id, 'POST').then(function(res) {
-      if (res && res.detail) {
-        toast(res.detail, 'success');
-        loadUsers();
-      } else {
-        toast(res && res.detail ? res.detail : 'Failed', 'error');
       }
     });
   });
