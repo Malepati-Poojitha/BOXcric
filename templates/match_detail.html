@@ -702,9 +702,13 @@ async function loadMilestones() {
 
 // ===== UNDO =====
 async function undoLastBall(innId) {
-  confirmAction('Undo the last ball? This cannot be reversed.', async function() {
+  confirmAction('Undo the last ball? You can only correct each ball once.', async function() {
     var res = await api('/api/features/undo/' + innId, 'DELETE');
-    toast(res.detail || 'Ball undone', 'success');
+    if (res && res.detail) {
+      toast(res.detail, 'success');
+    } else {
+      toast(res?.detail || 'Cannot undo this ball', 'error');
+    }
     await loadMatch();
   });
 }

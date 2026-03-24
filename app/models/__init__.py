@@ -6,6 +6,7 @@ from app.models.ball import Ball
 from app.models.user import User
 from app.models.video import Video
 from app.models.extras import MatchPhoto, MOMVote, MatchPrediction, Reaction, Milestone
+from app.models.notification import Notification
 
 __all__ = ["Player", "Team", "TeamPlayer", "Match", "Innings", "Ball", "User", "Video",
-           "MatchPhoto", "MOMVote", "MatchPrediction", "Reaction", "Milestone"]
+           "MatchPhoto", "MOMVote", "MatchPrediction", "Reaction", "Milestone", "Notification"]

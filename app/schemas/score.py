@@ -14,6 +14,7 @@ class BallInput(BaseModel):
     wicket_type: WicketType = WicketType.NONE
     dismissed_player_id: Optional[int] = None
     fielder_id: Optional[int] = None
+    is_correction: bool = False
 
 
 class BallOut(BaseModel):

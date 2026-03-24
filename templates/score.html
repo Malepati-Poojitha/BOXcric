@@ -106,6 +106,7 @@ let currentBowler = null;
 let selectedWicketType = 'bowled';
 let recentBalls = [];
 let dismissedBatters = new Set(); // track who is out
+let pendingCorrection = false; // true after undo, next ball is a correction
 
 // Batting team players for this innings
 let battingPlayers = [];
@@ -276,6 +277,10 @@ function renderScoringUI() {
           <div class="mt-4">
             <button class="wicket-btn" onclick="openWicketModal()">🔴 WICKET</button>
           </div>
+
+          <div class="mt-3">
+            <button class="btn btn-outline btn-sm btn-block" onclick="undoLastBall()" style="color:var(--accent)">↩️ Undo Last Ball (1x correction)</button>
+          </div>
         </div>
       </div>
     </div>
@@ -310,10 +315,12 @@ async function scoreBall(runs) {
     extra_type: 'none',
     extra_runs: 0,
     is_wicket: false,
-    wicket_type: 'none'
+    wicket_type: 'none',
+    is_correction: pendingCorrection
   };
   const ball = await api(`/scoring/innings/${currentInnings.id}/ball`, 'POST', payload);
   if (ball && !ball.detail) {
+    pendingCorrection = false;
     addRecentBall(runs, 'none', false);
     // Rotate strike on odd runs
     if (runs % 2 === 1) swapStrike();
@@ -334,10 +341,12 @@ async function scoreExtra(type, extraRuns) {
     extra_type: type,
     extra_runs: extraRuns,
     is_wicket: false,
-    wicket_type: 'none'
+    wicket_type: 'none',
+    is_correction: pendingCorrection
   };
   const ball = await api(`/scoring/innings/${currentInnings.id}/ball`, 'POST', payload);
   if (ball && !ball.detail) {
+    pendingCorrection = false;
     addRecentBall(0, type, false, extraRuns);
     await refreshScore();
   } else {
@@ -400,13 +409,15 @@ async function confirmWicket() {
     is_wicket: true,
     wicket_type: selectedWicketType,
     dismissed_player_id: dismissedId,
-    fielder_id: fielderId
+    fielder_id: fielderId,
+    is_correction: pendingCorrection
   };
 
   const ball = await api(`/scoring/innings/${currentInnings.id}/ball`, 'POST', payload);
   closeWicketModal();
 
   if (ball && !ball.detail) {
+    pendingCorrection = false;
     addRecentBall(runsOnBall, 'none', true);
     toast('WICKET! ☝️', 'error');
 
@@ -609,6 +620,23 @@ function addRecentBall(runs, extraType, isWicket, extraRuns) {
       `<div class="ball-chip ${b.cls}">${b.label}</div>`
     ).join('');
   }
+}
+
+async function undoLastBall() {
+  if (!currentInnings) return;
+  confirmAction('Undo the last ball and re-score it? You can only correct each ball once.', async function() {
+    const res = await api('/api/features/undo/' + currentInnings.id, 'DELETE');
+    if (res && res.is_correction) {
+      pendingCorrection = true;
+      toast('Ball undone! Now score the correct ball.', 'success');
+      if (recentBalls.length > 0) recentBalls.pop();
+      const disp = el('recentBallsDisplay');
+      if (disp) disp.innerHTML = recentBalls.map(b => `<div class="ball-chip ${b.cls}">${b.label}</div>`).join('');
+      await refreshScore();
+    } else {
+      toast(res?.detail || 'Cannot undo this ball', 'error');
+    }
+  });
 }
 </script>
 {% endblock %}

@@ -48,6 +48,7 @@ def record_ball(db: Session, innings_id: int, data: BallInput) -> Ball:
         dismissed_player_id=data.dismissed_player_id,
         fielder_id=data.fielder_id,
         is_legal=is_legal,
+        is_correction=data.is_correction,
     )
     db.add(ball)
 

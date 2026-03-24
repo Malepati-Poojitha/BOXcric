@@ -8,6 +8,7 @@ from app.models.match import Match, MatchStatus
 from app.models.innings import Innings
 from app.models.team import Team
 from app.schemas.match import MatchCreate, MatchToss, MatchOut
+from app.services.notifications import notify_match_users
 
 router = APIRouter(prefix="/matches", tags=["Matches"])
 
@@ -25,6 +26,14 @@ def create_match(data: MatchCreate, db: Session = Depends(get_db)):
     db.add(match)
     db.commit()
     db.refresh(match)
+    # Notify players in both teams
+    t1 = db.query(Team).filter(Team.id == match.team1_id).first()
+    t2 = db.query(Team).filter(Team.id == match.team2_id).first()
+    t1n = t1.name if t1 else "Team 1"
+    t2n = t2.name if t2 else "Team 2"
+    notify_match_users(db, match, "match_created",
+        f"New Match: {t1n} vs {t2n}",
+        f"You've been selected for {t1n} vs {t2n}. Get ready!")
     return match
 
 
@@ -77,6 +86,11 @@ def record_toss(match_id: int, data: MatchToss, db: Session = Depends(get_db)):
     db.add_all([innings1, innings2])
     db.commit()
     db.refresh(match)
+    toss_team = db.query(Team).filter(Team.id == data.toss_winner_id).first()
+    toss_name = toss_team.name if toss_team else "Unknown"
+    notify_match_users(db, match, "toss",
+        f"Toss: {toss_name} won",
+        f"{toss_name} won the toss and chose to {data.toss_decision.value}.")
     return match
 
 
@@ -90,6 +104,11 @@ def start_match(match_id: int, db: Session = Depends(get_db)):
     match.status = MatchStatus.LIVE
     db.commit()
     db.refresh(match)
+    t1 = db.query(Team).filter(Team.id == match.team1_id).first()
+    t2 = db.query(Team).filter(Team.id == match.team2_id).first()
+    notify_match_users(db, match, "match_started",
+        "Match Started!",
+        f"{t1.name if t1 else 'Team 1'} vs {t2.name if t2 else 'Team 2'} is now LIVE!")
     return match
 
 
@@ -122,6 +141,9 @@ def end_match(match_id: int, db: Session = Depends(get_db)):
     match.status = MatchStatus.COMPLETED
     db.commit()
     db.refresh(match)
+    notify_match_users(db, match, "match_ended",
+        "Match Completed!",
+        match.result_summary or "The match has ended.")
     return match
 
 

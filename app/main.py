@@ -10,11 +10,13 @@ from app.config import APP_TITLE, APP_VERSION, APP_DESCRIPTION
 from app.database import engine, Base, get_db, SessionLocal
 from app.routers import players, teams, matches, scoring, stats, records
 from app.routers import user_auth, videos, rankings, probability, commentary, features
+from app.routers import notifications
 from app.websocket.live_score import manager
 from app.services.scoring import get_live_score
 from app.auth import get_current_user_from_cookie
 from app.models.user import User  # ensure table is created
 from app.models.player import Player
+from app.models.notification import Notification  # ensure table is created
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -55,6 +57,15 @@ try:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE teams ADD COLUMN cohost_id INTEGER"))
             print("[MIGRATE] Added cohost_id column to teams table")
+
+    # Add is_correction to balls
+    if "balls" in insp.get_table_names():
+        cols = [c["name"] for c in insp.get_columns("balls")]
+        if "is_correction" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE balls ADD COLUMN is_correction BOOLEAN DEFAULT 0"))
+            print("[MIGRATE] Added is_correction column to balls table")
+
 except Exception as e:
     print(f"[MIGRATE] Warning: {e}")
 
@@ -135,6 +146,7 @@ app.include_router(rankings.router)
 app.include_router(probability.router)
 app.include_router(commentary.router)
 app.include_router(features.router)
+app.include_router(notifications.router)
 
 
 # ===== ADMIN Pages (full control) =====

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'boxcric-v2';
+const CACHE_NAME = 'boxcric-v3';
 const STATIC_ASSETS = [
   '/static/css/style.css',
   '/static/js/app.js',
@@ -27,7 +27,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for everything, cache as fallback
+// Fetch: network-first, only cache static assets (never cache HTML/API)
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -35,7 +35,24 @@ self.addEventListener('fetch', (event) => {
   if (url.protocol === 'ws:' || url.protocol === 'wss:') return;
   if (event.request.method !== 'GET') return;
 
-  // Network-first for all requests
+  // Never cache HTML pages or API responses (they contain user-specific data)
+  const isStaticAsset = url.pathname.startsWith('/static/');
+  const isApiOrPage = url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/app') ||
+    url.pathname.startsWith('/admin') ||
+    url.pathname === '/' ||
+    url.pathname.startsWith('/scoring') ||
+    url.pathname.startsWith('/matches') ||
+    url.pathname.startsWith('/players') ||
+    url.pathname.startsWith('/teams');
+
+  if (isApiOrPage && !isStaticAsset) {
+    // Always go to network for pages/API, no caching
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Static assets: network-first with cache fallback
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -46,6 +63,5 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => caches.match(event.request))
-  );
   );
 });

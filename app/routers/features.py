@@ -144,10 +144,13 @@ def get_reactions(match_id: int, db: Session = Depends(get_db)):
 # ===== 4. UNDO LAST BALL =====
 @router.delete("/undo/{innings_id}")
 def undo_last_ball(innings_id: int, db: Session = Depends(get_db)):
-    """Admin: undo the last scored ball."""
+    """Undo the last scored ball. Each ball position allows only one correction."""
     last_ball = db.query(Ball).filter(Ball.innings_id == innings_id).order_by(Ball.id.desc()).first()
     if not last_ball:
         raise HTTPException(status_code=404, detail="No balls to undo")
+
+    if last_ball.is_correction:
+        raise HTTPException(status_code=400, detail="This ball was already corrected once. No further undo allowed.")
 
     inn = db.query(Innings).filter(Innings.id == innings_id).first()
     if not inn:
@@ -169,7 +172,7 @@ def undo_last_ball(innings_id: int, db: Session = Depends(get_db)):
     ball_info = f"{last_ball.over_number}.{last_ball.ball_number} | {last_ball.runs_scored}runs"
     db.delete(last_ball)
     db.commit()
-    return {"detail": f"Last ball undone: {ball_info}"}
+    return {"detail": f"Last ball undone: {ball_info}. Score the correct ball now (one-time correction).", "is_correction": True}
 
 
 # ===== 5. HEAD-TO-HEAD =====

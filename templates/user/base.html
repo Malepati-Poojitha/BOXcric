@@ -35,6 +35,21 @@
       <div class="nav-actions">
         <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeBtn">🌙</button>
         {% if user %}
+          <!-- Notification Bell -->
+          <div style="position:relative;display:inline-flex">
+            <button onclick="toggleNotifPanel()" title="Notifications" style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);color:#fff;border:none;cursor:pointer;font-size:18px;position:relative" id="notifBellBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span id="notifBadge" style="display:none;position:absolute;top:-2px;right:-2px;background:#e63946;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:8px;line-height:16px;text-align:center;padding:0 4px">0</span>
+            </button>
+            <!-- Notification Panel -->
+            <div id="notifPanel" style="display:none;position:absolute;top:42px;right:0;width:320px;max-height:400px;background:var(--card-bg,#fff);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.25);z-index:9999;overflow:hidden">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border,#e5e7eb)">
+                <strong style="font-size:15px;color:var(--text)">Notifications</strong>
+                <button onclick="markAllNotifRead()" style="background:none;border:none;color:var(--primary,#1a472a);font-size:12px;cursor:pointer;font-weight:600">Mark all read</button>
+              </div>
+              <div id="notifList" style="overflow-y:auto;max-height:340px;padding:4px 0"></div>
+            </div>
+          </div>
           <a href="/app/profile" title="My Profile" style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);color:#fff;font-size:16px;text-decoration:none;transition:all 0.2s;overflow:hidden;border:2px solid rgba(255,255,255,0.3)">{% if user.photo %}<img src="{{ user.photo }}" style="width:100%;height:100%;object-fit:cover">{% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>{% endif %}</a>
           <a href="/app/profile" class="text-sm" style="color:rgba(255,255,255,0.85);margin-right:4px;font-weight:600">{{ user.name }}</a>
           <button class="btn btn-outline btn-sm logout-btn" style="color:#fff;border-color:rgba(255,255,255,0.3)" onclick="logoutUser()">Logout</button>
@@ -105,6 +120,86 @@
       window.location.href = '/app/login';
     }
   </script>
+
+  {% if user %}
+  <script>
+    // --- Notification system ---
+    let _notifOpen = false;
+
+    function toggleNotifPanel() {
+      const panel = document.getElementById('notifPanel');
+      _notifOpen = !_notifOpen;
+      panel.style.display = _notifOpen ? 'block' : 'none';
+      if (_notifOpen) loadNotifications();
+    }
+
+    // Close panel when clicking outside
+    document.addEventListener('click', function(e) {
+      if (_notifOpen && !e.target.closest('#notifBellBtn') && !e.target.closest('#notifPanel')) {
+        document.getElementById('notifPanel').style.display = 'none';
+        _notifOpen = false;
+      }
+    });
+
+    async function loadNotifications() {
+      const data = await api('/api/notifications/');
+      if (!data) return;
+      const badge = document.getElementById('notifBadge');
+      if (data.unread > 0) {
+        badge.textContent = data.unread > 9 ? '9+' : data.unread;
+        badge.style.display = 'block';
+      } else {
+        badge.style.display = 'none';
+      }
+      const list = document.getElementById('notifList');
+      if (!data.notifications || data.notifications.length === 0) {
+        list.innerHTML = '<div style="padding:30px 16px;text-align:center;color:var(--text-light)"><div style="font-size:28px;margin-bottom:8px">🔔</div><p style="margin:0;font-size:13px">No notifications yet</p></div>';
+        return;
+      }
+      list.innerHTML = data.notifications.map(n => {
+        const icon = {match_created:'📋', toss:'🪙', match_started:'🏏', match_ended:'🏆', innings_break:'⏸️'}[n.type] || '🔔';
+        const time = n.created_at ? timeAgo(n.created_at) : '';
+        const unreadDot = n.is_read ? '' : '<span style="width:8px;height:8px;background:#e63946;border-radius:50%;display:inline-block;flex-shrink:0"></span>';
+        return `<a href="${n.match_id ? '/app/match/' + n.match_id : '#'}" onclick="markNotifRead(${n.id})" style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;text-decoration:none;color:var(--text);border-bottom:1px solid var(--border,#e5e7eb);${n.is_read ? 'opacity:0.65' : 'background:rgba(26,71,42,0.05)'}">
+          <span style="font-size:22px;flex-shrink:0;margin-top:2px">${icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;margin-bottom:2px">${n.title}</div>
+            <div style="font-size:12px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.message}</div>
+            <div style="font-size:11px;color:var(--text-muted,#9ca3af);margin-top:2px">${time}</div>
+          </div>
+          ${unreadDot}
+        </a>`;
+      }).join('');
+    }
+
+    async function markNotifRead(id) {
+      await api('/api/notifications/' + id + '/read', 'POST');
+    }
+
+    async function markAllNotifRead() {
+      await api('/api/notifications/read-all', 'POST');
+      loadNotifications();
+    }
+
+    function timeAgo(dateStr) {
+      const now = new Date();
+      const d = new Date(dateStr);
+      const secs = Math.floor((now - d) / 1000);
+      if (secs < 60) return 'Just now';
+      const mins = Math.floor(secs / 60);
+      if (mins < 60) return mins + 'm ago';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h ago';
+      const days = Math.floor(hrs / 24);
+      if (days < 7) return days + 'd ago';
+      return d.toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+    }
+
+    // Poll for new notifications every 30 seconds
+    loadNotifications();
+    setInterval(loadNotifications, 30000);
+  </script>
+  {% endif %}
 
   {% if not user %}
   <!-- Login Popup for non-logged-in users -->

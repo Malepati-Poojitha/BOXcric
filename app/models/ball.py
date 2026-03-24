@@ -41,6 +41,7 @@ class Ball(Base):
     dismissed_player_id = Column(Integer, ForeignKey("players.id"), nullable=True)
     fielder_id = Column(Integer, ForeignKey("players.id"), nullable=True)
     is_legal = Column(Boolean, default=True)            # false for wides/no-balls
+    is_correction = Column(Boolean, default=False)       # True = re-scored after undo (one-time only)
 
     innings = relationship("Innings", back_populates="balls")
     batter = relationship("Player", foreign_keys=[batter_id])
