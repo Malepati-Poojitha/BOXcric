@@ -35,7 +35,7 @@ function renderUsers() {
 
   var html = '<div class="card"><div class="card-body" style="overflow-x:auto;padding:0">';
   html += '<table class="scorecard-table"><thead><tr>';
-  html += '<th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Gender</th><th>Bat</th><th>Bowl</th><th>Admin</th><th>Joined</th><th>Action</th>';
+  html += '<th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Admin</th><th>Joined</th><th>Action</th>';
   html += '</tr></thead><tbody>';
 
   for (var i = 0; i < users.length; i++) {
@@ -60,15 +60,14 @@ function renderUsers() {
     html += '<td class="text-sm">' + esc(u.email) + '</td>';
     html += '<td class="text-sm">' + (u.phone || '-') + '</td>';
     html += '<td class="text-sm">' + (u.player_role ? capitalize(u.player_role) : '-') + '</td>';
-    html += '<td class="text-sm">' + (u.gender ? capitalize(u.gender) : '-') + '</td>';
-    html += '<td class="text-sm">' + (u.batting_hand ? capitalize(u.batting_hand) : '-') + '</td>';
-    html += '<td class="text-sm">' + (u.bowling_type && u.bowling_type !== 'none' ? capitalize(u.bowling_type) : '-') + '</td>';
-    html += '<td class="text-sm">' + (u.is_admin ? '<span class="badge badge-live">ADMIN</span>' : '<span class="text-muted">—</span>') + '</td>';
-    html += '<td class="text-sm">' + joined + '</td>';
-    html += '<td style="white-space:nowrap">';
-    html += '<button class="btn btn-sm" style="color:' + (u.is_admin ? 'var(--accent)' : 'var(--primary)') + ';background:none;border:none;cursor:pointer;font-weight:600" onclick="toggleAdmin(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\',' + (u.is_admin ? 'true' : 'false') + ')">' + (u.is_admin ? '👑 Remove Admin' : '👑 Make Admin') + '</button>';
-    html += ' <button class="btn btn-sm" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600" onclick="deleteUser(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">🗑 Delete</button>';
+    html += '<td>';
+    if (u.is_admin) {
+      html += '<span class="badge badge-live" style="font-size:11px">ADMIN</span> ';
+    }
+    html += '<button class="btn btn-sm btn-outline" style="font-size:11px;padding:2px 8px" onclick="toggleAdmin(' + u.id + ')">' + (u.is_admin ? 'Remove Admin' : 'Make Admin') + '</button>';
     html += '</td>';
+    html += '<td class="text-sm">' + joined + '</td>';
+    html += '<td><button class="btn btn-sm" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600" onclick="deleteUser(' + u.id + ',\'' + esc(u.name).replace(/'/g, "\\'") + '\')">🗑 Delete</button></td>';
     html += '</tr>';
   }
 
@@ -89,21 +88,18 @@ function deleteUser(id, name) {
   });
 }
 
-function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : ''; }
-function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-
-function toggleAdmin(id, name, isAdmin) {
-  var msg = isAdmin ? 'Remove admin access from "' + name + '"?' : 'Make "' + name + '" an admin? They will be able to access admin panel and manage users.';
-  confirmAction(msg, function() {
-    api('/api/user/' + id + '/toggle-admin', 'POST').then(function(res) {
-      if (res && res.detail) {
-        toast(res.detail, 'success');
-        loadUsers();
-      } else {
-        toast(res && res.detail ? res.detail : 'Failed', 'error');
-      }
-    });
+function toggleAdmin(id) {
+  api('/api/user/' + id + '/toggle-admin', 'POST').then(function(res) {
+    if (res && res.detail) {
+      toast(res.detail, 'success');
+      loadUsers();
+    } else {
+      toast(res && res.detail ? res.detail : 'Only admins can do this', 'error');
+    }
   });
 }
+
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : ''; }
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 </script>
 {% endblock %}

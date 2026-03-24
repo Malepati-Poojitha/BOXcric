@@ -14,46 +14,28 @@ if _is_libsql:
     _turso_url = f"libsql://{_parsed.hostname}"
     _auth_token = parse_qs(_parsed.query).get("authToken", [""])[0]
 
-    # Single shared libsql connection — reads/writes go through Turso sync
+    # Use libsql embedded replica: local SQLite file synced with Turso
     _turso_conn = libsql.connect(
         "turso_replica.db", sync_url=_turso_url, auth_token=_auth_token
     )
     _turso_conn.sync()
 
-    class _LibsqlConnectionWrapper:
-        """Wraps libsql connection so SQLAlchemy can use it as a DBAPI connection."""
-        def __init__(self):
-            self._conn = _turso_conn
-        def cursor(self):
-            return self._conn.cursor()
-        def commit(self):
-            self._conn.commit()
-            self._conn.sync()
-        def rollback(self):
-            self._conn.rollback()
-        def close(self):
-            pass  # Keep connection alive
-        def execute(self, *args, **kwargs):
-            return self._conn.execute(*args, **kwargs)
-        def create_function(self, *a, **kw):
-            pass
-        @property
-        def isolation_level(self):
-            return ""
-        @isolation_level.setter
-        def isolation_level(self, val):
-            pass
-        @property
-        def in_transaction(self):
-            return False
-        def __getattr__(self, name):
-            return getattr(self._conn, name)
-
+    # Use a standard SQLite engine on the synced local file for full compatibility
     engine = create_engine(
-        "sqlite://",
-        creator=lambda: _LibsqlConnectionWrapper(),
+        "sqlite:///turso_replica.db",
         connect_args={"check_same_thread": False},
+        pool_pre_ping=True,
     )
+
+    # Sync changes back to Turso after each session
+    from sqlalchemy import event as _sa_event
+
+    @_sa_event.listens_for(engine, "commit")
+    def _sync_on_commit(conn):
+        try:
+            _turso_conn.sync()
+        except Exception as e:
+            print(f"[TURSO] Sync error: {e}")
 
 elif _is_sqlite:
     engine = create_engine(
