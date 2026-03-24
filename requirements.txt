@@ -4,7 +4,7 @@ wheel
 fastapi
 uvicorn[standard]
 sqlalchemy
-sqlalchemy-libsql
+libsql-experimental
 pydantic
 websockets
 jinja2
