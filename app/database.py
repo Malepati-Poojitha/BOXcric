@@ -6,6 +6,10 @@ from app.config import DATABASE_URL
 _is_sqlite = DATABASE_URL.startswith("sqlite")
 _is_libsql = DATABASE_URL.startswith("libsql")
 
+# Register libsql dialect with SQLAlchemy
+if _is_libsql:
+    import sqlalchemy_libsql  # noqa: F401
+
 connect_args = {"check_same_thread": False} if _is_sqlite else {}
 engine = create_engine(
     DATABASE_URL,
