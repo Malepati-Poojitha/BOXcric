@@ -148,17 +148,17 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{user_id}/toggle-admin")
 def toggle_admin(user_id: int, request: Request, db: Session = Depends(get_db)):
-    """Toggle admin status for a user. Only admins can do this."""
+    """Toggle admin status. Only admins can do this."""
     caller = get_current_user_from_cookie(request, db)
     if not caller or not caller.is_admin:
-        raise HTTPException(status_code=403, detail="Only admins can change admin status")
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
         raise HTTPException(status_code=404, detail="User not found")
-    user.is_admin = not user.is_admin
+    target.is_admin = not target.is_admin
     db.commit()
-    status = "admin" if user.is_admin else "regular user"
-    return {"detail": f"{user.name} is now {status}", "is_admin": user.is_admin}
+    action = "promoted to admin" if target.is_admin else "removed from admin"
+    return {"detail": f"{target.name} {action}", "is_admin": target.is_admin}
 
 
 @router.get("/me", response_model=UserOut)
