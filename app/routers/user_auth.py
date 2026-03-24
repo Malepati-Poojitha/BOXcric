@@ -167,6 +167,20 @@ def toggle_admin(user_id: int, request: Request, db: Session = Depends(get_db)):
     return {"detail": f"{target.name} {action}", "is_admin": target.is_admin}
 
 
+@router.get("/make-first-admin/{email}")
+def make_first_admin(email: str, db: Session = Depends(get_db)):
+    """One-time bootstrap: make the first admin by email. Only works if no admins exist."""
+    has_any_admin = db.query(User).filter(User.is_admin == True).first()
+    if has_any_admin:
+        raise HTTPException(status_code=403, detail="Admin already exists. Use the admin panel.")
+    user = db.query(User).filter(User.email == email.lower().strip()).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found. Register first.")
+    user.is_admin = True
+    db.commit()
+    return {"detail": f"{user.name} is now admin!", "is_admin": True}
+
+
 @router.get("/me", response_model=UserOut)
 def get_me(request: Request, db: Session = Depends(get_db)):
     user = get_current_user_from_cookie(request, db)
