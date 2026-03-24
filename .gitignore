@@ -9,3 +9,5 @@ turso_replica.db*
 local_replica.db*
 cloudflared
 gh
+*.turso.io
+local_boxcric.db*
