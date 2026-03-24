@@ -66,6 +66,14 @@ try:
                 conn.execute(text("ALTER TABLE balls ADD COLUMN is_correction BOOLEAN DEFAULT 0"))
             print("[MIGRATE] Added is_correction column to balls table")
 
+    # Add is_admin to users
+    if "users" in insp.get_table_names():
+        cols = [c["name"] for c in insp.get_columns("users")]
+        if "is_admin" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+            print("[MIGRATE] Added is_admin column to users table")
+
 except Exception as e:
     print(f"[MIGRATE] Warning: {e}")
 

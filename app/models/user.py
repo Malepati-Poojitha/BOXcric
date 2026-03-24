@@ -25,3 +25,4 @@ class User(Base):
     player_role = Column(String(30), nullable=True)       # batsman / bowler / allrounder / wk_batsman
     profile_complete = Column(Boolean, default=False)
     profile_edits = Column(Integer, default=0)             # max 5 full edits allowed
+    is_admin = Column(Boolean, default=False)

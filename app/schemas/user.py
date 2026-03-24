@@ -31,6 +31,7 @@ class UserOut(BaseModel):
     player_role: Optional[str] = None
     profile_complete: bool = False
     profile_edits: int = 0
+    is_admin: bool = False
     created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
