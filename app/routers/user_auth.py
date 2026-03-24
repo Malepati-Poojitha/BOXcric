@@ -123,18 +123,14 @@ def logout(response: Response):
 
 
 @router.get("/all", response_model=list[UserOut])
-def list_all_users(request: Request, db: Session = Depends(get_db)):
-    """List all registered users (admin only)."""
-    from app.auth import require_admin
-    require_admin(request, db)
+def list_all_users(db: Session = Depends(get_db)):
+    """List all registered users."""
     return db.query(User).order_by(User.created_at.desc()).all()
 
 
 @router.delete("/{user_id}")
-def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
-    """Delete a user (admin only)."""
-    from app.auth import require_admin
-    admin = require_admin(request, db)
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    """Delete a user."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

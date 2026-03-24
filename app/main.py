@@ -157,90 +157,59 @@ app.include_router(features.router)
 app.include_router(notifications.router)
 
 
-# ===== ADMIN Pages (full control — require admin login) =====
-def _require_admin_page(request: Request, db: Session):
-    """Check if user is logged in and is admin. Redirect to /app if not."""
-    from fastapi.responses import RedirectResponse
-    user = get_current_user_from_cookie(request, db)
-    if not user or not user.is_admin:
-        return RedirectResponse(url="/app")
-    return user
-
-
+# ===== ADMIN Pages (full control) =====
 @app.get("/admin", include_in_schema=False)
-def admin_home(request: Request, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_home(request: Request):
     return templates.TemplateResponse(request, "index.html", {"active": "home"})
 
 
 @app.get("/admin/matches", include_in_schema=False)
-def admin_matches(request: Request, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_matches(request: Request):
     return templates.TemplateResponse(request, "matches.html", {"active": "matches"})
 
 
 @app.get("/admin/match/{match_id}", include_in_schema=False)
-def admin_match_detail(request: Request, match_id: int, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_match_detail(request: Request, match_id: int):
     return templates.TemplateResponse(request, "match_detail.html", {"active": "matches", "match_id": match_id})
 
 
 @app.get("/admin/score/{match_id}", include_in_schema=False)
-def admin_score(request: Request, match_id: int, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_score(request: Request, match_id: int):
     return templates.TemplateResponse(request, "score.html", {"active": "matches", "match_id": match_id})
 
 
 @app.get("/admin/new-match", include_in_schema=False)
-def admin_new_match(request: Request, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_new_match(request: Request):
     return templates.TemplateResponse(request, "new_match.html", {"active": "matches"})
 
 
 @app.get("/admin/players", include_in_schema=False)
-def admin_players(request: Request, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_players(request: Request):
     return templates.TemplateResponse(request, "players.html", {"active": "players"})
 
 
 @app.get("/admin/teams", include_in_schema=False)
-def admin_teams(request: Request, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_teams(request: Request):
     return templates.TemplateResponse(request, "teams.html", {"active": "teams"})
 
 
 @app.get("/admin/records", include_in_schema=False)
-def admin_records(request: Request, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_records(request: Request):
     return templates.TemplateResponse(request, "records.html", {"active": "records"})
 
 
 @app.get("/admin/videos", include_in_schema=False)
-def admin_videos(request: Request, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_videos(request: Request):
     return templates.TemplateResponse(request, "videos.html", {"active": "videos"})
 
 
 @app.get("/admin/rankings", include_in_schema=False)
-def admin_rankings(request: Request, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_rankings(request: Request):
     return templates.TemplateResponse(request, "rankings.html", {"active": "rankings"})
 
 
 @app.get("/admin/users", include_in_schema=False)
-def admin_users(request: Request, db: Session = Depends(get_db)):
-    check = _require_admin_page(request, db)
-    if hasattr(check, 'status_code'): return check
+def admin_users(request: Request):
     return templates.TemplateResponse(request, "users.html", {"active": "users"})
 
 

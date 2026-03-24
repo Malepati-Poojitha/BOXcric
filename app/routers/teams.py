@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -6,14 +6,12 @@ from app.database import get_db
 from app.models.team import Team, TeamPlayer
 from app.models.player import Player
 from app.schemas.team import TeamCreate, TeamUpdate, TeamAddPlayer, TeamSetCaptain, TeamSetHost, TeamOut
-from app.auth import require_admin
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
 
 @router.post("/", response_model=TeamOut)
-def create_team(data: TeamCreate, request: Request, db: Session = Depends(get_db)):
-    require_admin(request, db)
+def create_team(data: TeamCreate, db: Session = Depends(get_db)):
     team = Team(**data.model_dump())
     db.add(team)
     db.commit()
@@ -35,8 +33,7 @@ def get_team(team_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{team_id}", response_model=TeamOut)
-def update_team(team_id: int, data: TeamUpdate, request: Request, db: Session = Depends(get_db)):
-    require_admin(request, db)
+def update_team(team_id: int, data: TeamUpdate, db: Session = Depends(get_db)):
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -48,8 +45,7 @@ def update_team(team_id: int, data: TeamUpdate, request: Request, db: Session = 
 
 
 @router.post("/{team_id}/players", response_model=TeamOut)
-def add_player_to_team(team_id: int, data: TeamAddPlayer, request: Request, db: Session = Depends(get_db)):
-    require_admin(request, db)
+def add_player_to_team(team_id: int, data: TeamAddPlayer, db: Session = Depends(get_db)):
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -70,8 +66,7 @@ def add_player_to_team(team_id: int, data: TeamAddPlayer, request: Request, db: 
 
 
 @router.delete("/{team_id}/players/{player_id}", response_model=TeamOut)
-def remove_player_from_team(team_id: int, player_id: int, request: Request, db: Session = Depends(get_db)):
-    require_admin(request, db)
+def remove_player_from_team(team_id: int, player_id: int, db: Session = Depends(get_db)):
     tp = db.query(TeamPlayer).filter(
         TeamPlayer.team_id == team_id,
         TeamPlayer.player_id == player_id
@@ -85,8 +80,7 @@ def remove_player_from_team(team_id: int, player_id: int, request: Request, db: 
 
 
 @router.delete("/{team_id}")
-def delete_team(team_id: int, request: Request, db: Session = Depends(get_db)):
-    require_admin(request, db)
+def delete_team(team_id: int, db: Session = Depends(get_db)):
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -97,8 +91,7 @@ def delete_team(team_id: int, request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/{team_id}/captain", response_model=TeamOut)
-def set_captain(team_id: int, data: TeamSetCaptain, request: Request, db: Session = Depends(get_db)):
-    require_admin(request, db)
+def set_captain(team_id: int, data: TeamSetCaptain, db: Session = Depends(get_db)):
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -112,8 +105,7 @@ def set_captain(team_id: int, data: TeamSetCaptain, request: Request, db: Sessio
 
 
 @router.post("/{team_id}/host", response_model=TeamOut)
-def set_host(team_id: int, data: TeamSetHost, request: Request, db: Session = Depends(get_db)):
-    require_admin(request, db)
+def set_host(team_id: int, data: TeamSetHost, db: Session = Depends(get_db)):
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
