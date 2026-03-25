@@ -194,20 +194,30 @@ def delete_match(match_id: int, db: Session = Depends(get_db)):
     match = db.query(Match).filter(Match.id == match_id).first()
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
-    # Delete related data
     from app.models.ball import Ball
     from app.models.notification import Notification
     from app.models.extras import MatchPhoto, MOMVote, MatchPrediction, Reaction, Milestone
-    innings_ids = [i.id for i in db.query(Innings).filter(Innings.match_id == match_id).all()]
-    if innings_ids:
-        db.query(Ball).filter(Ball.innings_id.in_(innings_ids)).delete(synchronize_session=False)
-    db.query(Innings).filter(Innings.match_id == match_id).delete(synchronize_session=False)
-    db.query(Notification).filter(Notification.match_id == match_id).delete(synchronize_session=False)
-    db.query(MatchPhoto).filter(MatchPhoto.match_id == match_id).delete(synchronize_session=False)
-    db.query(MOMVote).filter(MOMVote.match_id == match_id).delete(synchronize_session=False)
-    db.query(MatchPrediction).filter(MatchPrediction.match_id == match_id).delete(synchronize_session=False)
-    db.query(Reaction).filter(Reaction.match_id == match_id).delete(synchronize_session=False)
-    db.query(Milestone).filter(Milestone.match_id == match_id).delete(synchronize_session=False)
+    # Delete balls for each innings
+    for inn in db.query(Innings).filter(Innings.match_id == match_id).all():
+        for ball in db.query(Ball).filter(Ball.innings_id == inn.id).all():
+            db.delete(ball)
+        db.delete(inn)
+    # Delete related records one by one
+    for n in db.query(Notification).filter(Notification.match_id == match_id).all():
+        db.delete(n)
+    for p in db.query(MatchPhoto).filter(MatchPhoto.match_id == match_id).all():
+        db.delete(p)
+    for v in db.query(MOMVote).filter(MOMVote.match_id == match_id).all():
+        db.delete(v)
+    for pr in db.query(MatchPrediction).filter(MatchPrediction.match_id == match_id).all():
+        db.delete(pr)
+    for r in db.query(Reaction).filter(Reaction.match_id == match_id).all():
+        db.delete(r)
+    for m in db.query(Milestone).filter(Milestone.match_id == match_id).all():
+        db.delete(m)
+    db.delete(match)
+    db.commit()
+    return {"detail": "Match deleted"}
     db.delete(match)
     db.commit()
     return {"detail": "Match deleted"}
