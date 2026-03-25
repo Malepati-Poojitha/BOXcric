@@ -1067,6 +1067,488 @@ self.addEventListener('fetch', (event) => {
 
 ---
 
+### 6.14 Frontend — HTML Templates (Jinja2)
+
+#### 6.14.1 Admin Base Layout — `templates/base.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,
+        user-scalable=no, viewport-fit=cover">
+  <title>{% block title %}BOXcric{% endblock %}</title>
+
+  <!-- PWA meta tags for installable web app -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#1a472a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+
+  <link rel="stylesheet" href="/static/css/style.css?v=13">
+</head>
+<body>
+  <!-- Sticky header with navigation -->
+  <header class="header">
+    <div class="header-inner">
+      <button class="hamburger" onclick="toggleNav()">☰</button>
+      <a href="/admin" class="logo">BOX<span>cric</span> ADMIN</a>
+      <nav class="nav" id="mainNav">
+        <!-- Active tab highlighted via Jinja2 {% if active == 'matches' %}active{% endif %} -->
+        <a href="/admin/matches" class="{% if active == 'matches' %}active{% endif %}">Matches</a>
+        <a href="/admin/players">Players</a>
+        <a href="/admin/teams">Teams</a>
+        <!-- ... more nav links -->
+      </nav>
+      <div class="nav-actions">
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+        <a href="/admin/new-match" class="btn btn-accent btn-sm">+ New Match</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <main class="container">
+    {% block content %}{% endblock %}  <!-- Child templates inject content here -->
+  </main>
+
+  <!-- Mobile bottom navigation bar -->
+  <nav class="bottom-nav" id="bottomNav">
+    <a href="/admin" class="bottom-nav-item">Home</a>
+    <a href="/admin/matches" class="bottom-nav-item">Matches</a>
+    <a href="/admin/new-match" class="bottom-nav-item new-match-fab">New</a>
+    <a href="/admin/players" class="bottom-nav-item">Players</a>
+    <!-- ... more nav items -->
+  </nav>
+
+  <script src="/static/js/app.js?v=7"></script>
+  {% block scripts %}{% endblock %}  <!-- Child templates inject JS here -->
+</body>
+</html>
+```
+
+**What it does:**
+- Base layout for all admin pages using Jinja2 template inheritance (`{% extends "base.html" %}`)
+- PWA meta tags make the app installable on mobile home screens
+- Sticky header with hamburger menu (mobile) and horizontal nav (desktop)
+- Active tab is highlighted via `{% if active == 'matches' %}active{% endif %}` passed from route handlers
+- Dark/light theme toggle button
+- Toast notification container for success/error popups
+- Mobile bottom navigation bar with SVG icons
+- `{% block content %}` and `{% block scripts %}` are override points for child templates
+
+#### 6.14.2 User Base Layout — `templates/user/base.html`
+
+```html
+<!-- Same structure as admin base, but with user-specific features: -->
+
+<!-- Header includes notification bell (only for logged-in users) -->
+{% if user %}
+  <div style="position:relative">
+    <button onclick="toggleNotifPanel()" id="notifBellBtn">
+      🔔
+      <span id="notifBadge" style="display:none;background:#e63946">0</span>
+    </button>
+    <!-- Dropdown notification panel -->
+    <div id="notifPanel" style="display:none;position:absolute;width:320px">
+      <div>Notifications <button onclick="markAllNotifRead()">Mark all read</button></div>
+      <div id="notifList"></div>
+    </div>
+  </div>
+  <!-- Profile avatar + name -->
+  <a href="/app/profile">{{ user.name }}</a>
+  <button onclick="logoutUser()">Logout</button>
+{% else %}
+  <a href="/app/login" class="btn btn-accent">Login</a>
+{% endif %}
+
+<!-- Login popup for non-logged-in users (appears after 2 seconds) -->
+{% if not user %}
+<div id="loginPopup">
+  <h3>Join BOXcric</h3>
+  <p>Login to track your stats, view rankings & more</p>
+  <a href="/app/login">Login / Sign Up</a>
+</div>
+<script>
+  setTimeout(function() {
+    document.getElementById('loginPopup').style.display = 'block';
+  }, 2000);
+</script>
+{% endif %}
+
+<!-- Notification JS: polls /api/notifications/ every 30 seconds -->
+<script>
+  async function loadNotifications() {
+    const data = await api('/api/notifications/');
+    // Update badge count, render notification list with icons
+    // Each notification shows: icon (📋🪙🏏🏆), title, message, timeago
+  }
+  loadNotifications();
+  setInterval(loadNotifications, 30000);
+</script>
+```
+
+**What it does:**
+- Extends same layout as admin but with user-facing navigation (Home, Matches, Players, Records, Rankings, Videos)
+- Shows notification bell with unread count badge for logged-in users
+- Notification dropdown panel with mark-all-read and individual notification items
+- Login popup slides up from bottom after 2 seconds for non-logged-in users (dismissible)
+- Logout support with cookie clearing
+- Auto-polls notifications every 30 seconds
+
+#### 6.14.3 User Home Page — `templates/user/home.html`
+
+```html
+{% extends "user/base.html" %}
+{% block title %}BOXcric — Home{% endblock %}
+
+{% block content %}
+<!-- Welcome card for logged-in users -->
+{% if user %}
+  <div class="card" style="background:linear-gradient(135deg,var(--primary-dark),var(--primary))">
+    <div>Welcome back, {{ user.name }} 👋</div>
+  </div>
+{% endif %}
+
+<!-- Live Matches section (hidden until JS loads data) -->
+<div id="liveSection" class="hidden">
+  <h2>🔴 Live Matches</h2>
+  <div id="liveMatches"></div>
+</div>
+
+<!-- Recent Results + Upcoming in 2-column grid -->
+<div class="grid-2">
+  <div>
+    <h2>Recent Results</h2>
+    <div id="recentMatches"><div class="spinner"></div></div>
+  </div>
+  <div>
+    <h2>Upcoming</h2>
+    <div id="upcomingMatches"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- Quick Stats: total matches, players, teams -->
+<div class="stat-grid">
+  <div class="stat-card"><div id="statMatches">-</div><div>Matches</div></div>
+  <div class="stat-card"><div id="statPlayers">-</div><div>Players</div></div>
+  <div class="stat-card"><div id="statTeams">-</div><div>Teams</div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  // Fetch all data from APIs
+  const matches = await api('/matches/');
+  const players = await api('/players/');
+  const teams = await api('/teams/');
+
+  // Populate stats
+  el('statMatches').textContent = matches.length;
+  el('statPlayers').textContent = players.length;
+  el('statTeams').textContent = teams.length;
+
+  // Filter and display live, completed, and upcoming matches
+  const live = matches.filter(m => m.status === 'live' || m.status === 'innings_break');
+  if (live.length) {
+    el('liveSection').classList.remove('hidden');
+    el('liveMatches').innerHTML = live.map(m => matchCardUser(m, teams)).join('');
+  }
+  // ... similar for completed and upcoming
+});
+</script>
+{% endblock %}
+```
+
+**What it does:**
+- Home page for users — shows welcome banner, live matches, recent results, upcoming matches, and quick stats
+- All data loaded via client-side `fetch()` calls to REST APIs
+- Uses reusable `matchCard()` JS function to render match cards with scores
+- Responsive 2-column grid for recent/upcoming on desktop, stacks on mobile
+
+---
+
+### 6.15 Frontend — CSS Stylesheet (`static/css/style.css`)
+
+The stylesheet is **1,972 lines** covering the entire UI. Key sections:
+
+#### 6.15.1 CSS Variables (Theme System)
+
+```css
+/* Light mode (default) */
+:root {
+  --primary: #1a472a;        /* Cricket green */
+  --primary-dark: #0d2818;
+  --primary-light: #2d6a4f;
+  --accent: #e63946;          /* Red for live/wicket */
+  --accent-light: #ff6b6b;
+  --bg: #f0f2f5;               /* Page background */
+  --card-bg: #ffffff;           /* Card background */
+  --text: #1a1a2e;             /* Primary text */
+  --text-light: #6c757d;      /* Secondary text */
+  --border: #e5e7eb;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --radius: 10px;
+  --font: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Dark mode — activated via data-theme="dark" on <html> */
+[data-theme="dark"] {
+  --bg: #0f1419;
+  --card-bg: #1a2332;
+  --text: #e7e9ea;
+  --text-light: #8899a6;
+  --border: #2f3942;
+  --shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+```
+
+**What it does:** CSS custom properties define the entire color system. Switching between light/dark mode only requires changing the `data-theme` attribute on `<html>` — all components automatically update because they use `var(--bg)`, `var(--text)`, etc.
+
+#### 6.15.2 Layout & Header
+
+```css
+.header {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  height: 56px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 100px;  /* Bottom padding for mobile nav */
+}
+
+/* Mobile bottom navigation */
+.bottom-nav {
+  display: none;  /* Hidden on desktop */
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  z-index: 90;
+}
+
+@media (max-width: 768px) {
+  .bottom-nav { display: flex; }        /* Show on mobile */
+  .nav { display: none; }                /* Hide top nav on mobile */
+  .nav.open { display: flex; }           /* Show when hamburger toggled */
+}
+```
+
+**What it does:** Sticky green header with gradient. Responsive layout — desktop shows horizontal top nav, mobile shows bottom nav bar + hamburger menu. Max-width 1200px container centers content.
+
+#### 6.15.3 Match Card Component
+
+```css
+.match-card {
+  display: block;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: var(--transition);
+  margin-bottom: 12px;
+}
+
+.match-card.live { border-left: 3px solid var(--live-red); }
+.match-card.completed { border-left: 3px solid var(--win-green); }
+
+.match-card-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(to right, #f8f9fa, #fff);
+  font-size: 13px;
+}
+
+.team-score {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.badge-live { background: var(--live-red); color: #fff; animation: pulse 1.5s infinite; }
+.badge-completed { background: var(--win-green); color: #fff; }
+.badge-scheduled { background: #f59e0b; color: #fff; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+```
+
+**What it does:** Cricket match cards with colored left border (red for live, green for completed). Live badge pulses with CSS animation. Scores displayed in large bold font.
+
+#### 6.15.4 Scoring Buttons
+
+```css
+.run-btn {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  font-size: 20px; font-weight: 700;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.run-btn.four { background: #2563eb; color: #fff; }
+.run-btn.six { background: #7c3aed; color: #fff; }
+
+.wicket-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px; font-weight: 700;
+  border-radius: var(--radius);
+}
+
+.ball-chip {
+  display: inline-flex;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+
+.ball-chip.dot { background: #e5e7eb; }
+.ball-chip.runs-4 { background: #2563eb; color: #fff; }
+.ball-chip.runs-6 { background: #7c3aed; color: #fff; }
+.ball-chip.wicket { background: var(--accent); color: #fff; }
+```
+
+**What it does:** Circular run buttons (0-6) for the scoring console. 4s are blue, 6s are purple, wickets are red. Ball-by-ball history shown as colored chip circles (dot = gray, boundary = blue/purple, wicket = red).
+
+---
+
+### 6.16 Frontend — JavaScript (`static/js/app.js`)
+
+```javascript
+/* ===== Theme Toggle ===== */
+// Auto-detect system dark mode preference on load
+(function() {
+  var saved = localStorage.getItem('boxcric_theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+
+function toggleTheme() {
+  // Toggle data-theme attribute and persist in localStorage
+  var next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('boxcric_theme', next);
+}
+
+/* ===== API Helper ===== */
+async function api(url, method = 'GET', body = null) {
+  // Centralized fetch wrapper — all API calls go through this
+  // Handles JSON serialization, error catching
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  return await res.json();
+}
+
+/* ===== Toast Notifications ===== */
+function toast(message, type = 'info') {
+  // Creates a popup notification that auto-dismisses after 3 seconds
+  // Types: 'success' (green), 'error' (red), 'info' (blue)
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = message;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+/* ===== Match Card Builder ===== */
+function matchCard(m, teams, basePath) {
+  // Generates HTML for a match card showing:
+  // - Match title and status badge (LIVE/COMPLETED/UPCOMING)
+  // - Team names with short codes and scores
+  // - Result summary for completed matches
+  // - Links to match detail page
+  // Reused across admin and user pages
+  const t1 = teams.find(t => t.id === m.team1_id);
+  const t2 = teams.find(t => t.id === m.team2_id);
+  // ... builds HTML string with scores from innings data
+  return `<a href="${basePath}/${m.id}" class="match-card ${statusClass}">...</a>`;
+}
+
+/* ===== Status Badge ===== */
+function statusBadge(status) {
+  // Returns colored badge HTML: ● LIVE (red), COMPLETED (green), UPCOMING (yellow)
+  const map = {
+    live: ['badge-live', '● LIVE'],
+    completed: ['badge-completed', 'COMPLETED'],
+    scheduled: ['badge-scheduled', 'UPCOMING'],
+  };
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+/* ===== Modals & Confirmation ===== */
+function confirmAction(message, onYes) {
+  // Shows a centered confirmation popup with Cancel/Yes buttons
+  // Used for destructive actions (delete player, undo ball, etc.)
+}
+
+/* ===== PWA Service Worker Registration ===== */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  // Also clears old cache versions on each load
+}
+
+/* ===== PWA Install Prompt ===== */
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install banner at bottom of page
+});
+
+/* ===== Pull-to-Refresh ===== */
+document.addEventListener('touchend', (e) => {
+  // If user pulls down > 120px from top of page, reload
+  if (window.scrollY === 0 && touchEndY - touchStartY > 120) {
+    window.location.reload();
+  }
+});
+
+/* ===== Haptic Feedback ===== */
+function haptic(ms) {
+  // Vibrate device on scoring actions (if supported)
+  if (navigator.vibrate) navigator.vibrate(ms || 30);
+}
+```
+
+**What it does:**
+- **Theme**: Auto-detects system preference, toggles dark/light, persists in `localStorage`
+- **API helper**: Centralized `fetch()` wrapper used by all pages for REST API calls
+- **Toast**: Slide-in notification popups for success/error feedback
+- **Match card**: Reusable match card builder with scores, team logos, and status badges
+- **Modals**: Generic confirmation dialogs for destructive actions
+- **PWA**: Service worker registration, install prompt banner, cache management
+- **Pull-to-refresh**: Touch gesture to reload page on mobile
+- **Haptic**: Device vibration feedback when scoring (4s, 6s, wickets)
+
+---
+
 ## 7. Environment Configuration
 
 | Variable | Description | Default |
