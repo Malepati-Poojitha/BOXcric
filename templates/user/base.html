@@ -116,8 +116,10 @@
   <script src="/static/js/app.js?v=7"></script>
   <script>
     async function logoutUser() {
-      await api('/api/user/logout', 'POST');
-      window.location.href = '/app/login';
+      confirmAction('Are you sure you want to logout?', async function() {
+        await api('/api/user/logout', 'POST');
+        window.location.href = '/app/login';
+      });
     }
   </script>
 

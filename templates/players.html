@@ -202,11 +202,15 @@ async function viewPlayerStats(pid) {
 }
 
 async function deletePlayer(pid) {
-  confirmAction('Delete this player?', async function() {
-    await api(`/players/${pid}`, 'DELETE');
-    el('playerStatsModal').classList.remove('open');
-    toast('Player deleted', 'success');
-    await loadPlayers();
+  confirmAction('Delete this player permanently? This will remove them from all teams and match data.', async function() {
+    var res = await api(`/players/${pid}`, 'DELETE');
+    if (res && res.detail) {
+      el('playerStatsModal').classList.remove('open');
+      toast(res.detail, 'success');
+      await loadPlayers();
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed to delete player', 'error');
+    }
   });
 }
 </script>
