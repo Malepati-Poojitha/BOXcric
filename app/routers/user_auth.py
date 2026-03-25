@@ -130,7 +130,7 @@ def list_all_users(db: Session = Depends(get_db)):
 
 @router.delete("/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
-    """Delete a user."""
+    """Delete a user and clean up all references."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -141,7 +141,14 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
         if os.path.exists(photo_path):
             os.remove(photo_path)
 
-    db.delete(user)
+    from sqlalchemy import text
+    # Clean up all FK references using raw SQL
+    db.execute(text("UPDATE players SET user_id = NULL WHERE user_id = :uid"), {"uid": user_id})
+    db.execute(text("UPDATE teams SET host_id = NULL WHERE host_id = :uid"), {"uid": user_id})
+    db.execute(text("UPDATE teams SET cohost_id = NULL WHERE cohost_id = :uid"), {"uid": user_id})
+    db.execute(text("DELETE FROM notifications WHERE user_id = :uid"), {"uid": user_id})
+    db.execute(text("DELETE FROM match_predictions WHERE user_id = :uid"), {"uid": user_id})
+    db.execute(text("DELETE FROM users WHERE id = :uid"), {"uid": user_id})
     db.commit()
     return {"detail": f"User '{user.name}' deleted"}
 
