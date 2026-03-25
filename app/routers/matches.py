@@ -186,3 +186,28 @@ def start_super_over(match_id: int, request: Request, db: Session = Depends(get_
     db.commit()
     db.refresh(match)
     return match
+
+
+@router.delete("/{match_id}")
+def delete_match(match_id: int, db: Session = Depends(get_db)):
+    """Delete a match and all related data (innings, balls, notifications, etc.)."""
+    match = db.query(Match).filter(Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    # Delete related data
+    from app.models.ball import Ball
+    from app.models.notification import Notification
+    from app.models.extras import MatchPhoto, MOMVote, MatchPrediction, Reaction, Milestone
+    innings_ids = [i.id for i in db.query(Innings).filter(Innings.match_id == match_id).all()]
+    if innings_ids:
+        db.query(Ball).filter(Ball.innings_id.in_(innings_ids)).delete(synchronize_session=False)
+    db.query(Innings).filter(Innings.match_id == match_id).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.match_id == match_id).delete(synchronize_session=False)
+    db.query(MatchPhoto).filter(MatchPhoto.match_id == match_id).delete(synchronize_session=False)
+    db.query(MOMVote).filter(MOMVote.match_id == match_id).delete(synchronize_session=False)
+    db.query(MatchPrediction).filter(MatchPrediction.match_id == match_id).delete(synchronize_session=False)
+    db.query(Reaction).filter(Reaction.match_id == match_id).delete(synchronize_session=False)
+    db.query(Milestone).filter(Milestone.match_id == match_id).delete(synchronize_session=False)
+    db.delete(match)
+    db.commit()
+    return {"detail": "Match deleted"}

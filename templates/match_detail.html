@@ -203,6 +203,9 @@ function renderMatchDetail() {
     }
   }
 
+  // Delete match button
+  html += `<div class="mt-4 text-center"><button class="btn btn-outline btn-sm" onclick="deleteMatch(${m.id})" style="color:var(--accent)">🗑 Delete Match</button></div>`;
+
   el('matchDetail').innerHTML = html;
 
   // Load first scorecard + commentary + graph
@@ -710,6 +713,19 @@ async function undoLastBall(innId) {
       toast(res?.detail || 'Cannot undo this ball', 'error');
     }
     await loadMatch();
+  });
+}
+
+// ===== DELETE MATCH =====
+async function deleteMatch(matchId) {
+  confirmAction('Delete this match permanently? All scores, innings, and related data will be lost.', async function() {
+    var res = await api('/matches/' + matchId, 'DELETE');
+    if (res && res.detail) {
+      toast(res.detail, 'success');
+      setTimeout(function() { window.location.href = '/admin/matches'; }, 1000);
+    } else {
+      toast(res?.detail || 'Failed to delete match', 'error');
+    }
   });
 }
 </script>
