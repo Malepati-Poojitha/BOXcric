@@ -48,8 +48,10 @@ def delete_player(player_id: int, db: Session = Depends(get_db)):
     player = db.query(Player).filter(Player.id == player_id).first()
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
-    # Remove from all teams
     from app.models.team import TeamPlayer, Team
+    from app.models.extras import MOMVote, Milestone
+    from sqlalchemy import text
+    # Remove from all teams
     for tp in db.query(TeamPlayer).filter(TeamPlayer.player_id == player_id).all():
         db.delete(tp)
     # Clear captain/vice-captain references
@@ -58,23 +60,16 @@ def delete_player(player_id: int, db: Session = Depends(get_db)):
     for team in db.query(Team).filter(Team.vice_captain_id == player_id).all():
         team.vice_captain_id = None
     # Remove related votes and milestones
-    from app.models.extras import MOMVote, Milestone
     for v in db.query(MOMVote).filter(MOMVote.player_id == player_id).all():
         db.delete(v)
     for m in db.query(Milestone).filter(Milestone.player_id == player_id).all():
         db.delete(m)
-    # Null out ball references so match history stays but player is removed
-    from app.models.ball import Ball
-    for b in db.query(Ball).filter(Ball.batter_id == player_id).all():
-        b.batter_id = None
-    for b in db.query(Ball).filter(Ball.bowler_id == player_id).all():
-        b.bowler_id = None
-    for b in db.query(Ball).filter(Ball.non_striker_id == player_id).all():
-        b.non_striker_id = None
-    for b in db.query(Ball).filter(Ball.dismissed_player_id == player_id).all():
-        b.dismissed_player_id = None
-    for b in db.query(Ball).filter(Ball.fielder_id == player_id).all():
-        b.fielder_id = None
+    # Null out ball references using raw SQL (bypasses NOT NULL constraint in legacy schema)
+    db.execute(text("UPDATE balls SET batter_id = NULL WHERE batter_id = :pid"), {"pid": player_id})
+    db.execute(text("UPDATE balls SET bowler_id = NULL WHERE bowler_id = :pid"), {"pid": player_id})
+    db.execute(text("UPDATE balls SET non_striker_id = NULL WHERE non_striker_id = :pid"), {"pid": player_id})
+    db.execute(text("UPDATE balls SET dismissed_player_id = NULL WHERE dismissed_player_id = :pid"), {"pid": player_id})
+    db.execute(text("UPDATE balls SET fielder_id = NULL WHERE fielder_id = :pid"), {"pid": player_id})
     db.delete(player)
     db.commit()
     return {"detail": "Player deleted"}
