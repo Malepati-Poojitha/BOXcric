@@ -1,441 +1,499 @@
-# BOXcric — Complete Project Documentation
+# BOXcric — Project Documentation
 
-> **Cricket Match Management Platform**
-> Live scoring, stats, records, rankings & more for regular cricket matches.
-
-**Live URL:** https://boxcric.onrender.com
-**Admin Panel:** https://boxcric.onrender.com/admin
-**Tech Stack:** FastAPI + SQLAlchemy + Turso (libsql) + Jinja2 + Vanilla JS
-**Deployment:** Render (free tier) with self-ping keep-alive
+## Cricket Match Management & Live Scoring Platform
 
 ---
 
-## Table of Contents
+## 1. Problem Definition
 
-1. [Architecture](#architecture)
-2. [Database Models](#database-models)
-3. [API Endpoints](#api-endpoints)
-4. [User Pages](#user-pages-app)
-5. [Admin Pages](#admin-pages-admin)
-6. [Services](#services)
-7. [Auth System](#auth-system)
-8. [Notifications](#notifications)
-9. [WebSocket (Live Score)](#websocket-live-score)
-10. [PWA & Frontend](#pwa--frontend)
-11. [Database & Deployment](#database--deployment)
-12. [Environment Variables](#environment-variables)
+### 1.1 Background
+In regular/local cricket matches played among friends, clubs, and community teams, there is no affordable or accessible tool to manage match scoring, track player statistics, maintain records, and provide real-time updates. Existing cricket apps like Cricbuzz and ESPNcricinfo cater only to professional tournaments, leaving amateur cricket communities without proper match management infrastructure.
+
+### 1.2 Problem Statement
+Design and develop a **web-based cricket match management platform** that enables local cricket communities to:
+- Create and manage teams and players
+- Conduct ball-by-ball live scoring with real-time updates
+- Track comprehensive player statistics, records, and rankings
+- Provide a user-facing app for fans to follow matches, view stats, and interact
+- Ensure data persistence across deployments
+
+### 1.3 Key Challenges
+| Challenge | Description |
+|-----------|-------------|
+| **Real-time scoring** | Ball-by-ball updates must reflect instantly for all connected users |
+| **Data accuracy** | Scoring mistakes happen — need undo/correction mechanism |
+| **User engagement** | Fans need interactive features beyond passive viewing |
+| **Data persistence** | Free hosting platforms (Render) have ephemeral filesystems |
+| **Mobile-first** | Most users access from phones — needs PWA support |
+| **Zero cost** | Entire platform must run on free-tier services |
 
 ---
 
-## Architecture
+## 2. Scope of the Project
+
+### 2.1 In Scope
+| Module | Features |
+|--------|----------|
+| **Match Management** | Create matches, record toss, start/end matches, super overs |
+| **Live Scoring** | Ball-by-ball recording with extras, wickets, fielder info |
+| **Real-time Updates** | WebSocket-based live score push to all connected clients |
+| **Player Management** | Create/edit/delete players with batting/bowling styles |
+| **Team Management** | Create teams, assign players, set captain/vice-captain/host |
+| **Statistics** | Career batting & bowling stats per player |
+| **Records** | All-time records — highest score, best bowling, team totals |
+| **Rankings** | Weighted ranking system for batting, bowling, all-rounders |
+| **User System** | Registration, OTP login, profile management, photo upload |
+| **Notifications** | In-app notifications for match events to involved players |
+| **Win Probability** | Live win percentage calculation with multiple factors |
+| **Commentary** | Auto-generated ball-by-ball and over-by-over commentary |
+| **Social Features** | MOM voting, predictions, emoji reactions, fantasy XI |
+| **Video Gallery** | Upload match videos or add YouTube links |
+| **Match Photos** | Upload and view match photos |
+| **PWA** | Installable web app with offline support for static assets |
+| **Admin Panel** | Full CRUD for all entities |
+
+### 2.2 Out of Scope
+- Native mobile app (iOS/Android) — PWA covers mobile use
+- Payment/subscription system
+- Tournament/league management with points tables
+- Umpire decision review system
+- AI-based shot/delivery classification
+- Multi-language support
+
+### 2.3 Target Users
+| User Type | Description |
+|-----------|-------------|
+| **Admin/Scorer** | Creates matches, teams, players; does ball-by-ball scoring |
+| **Player** | Registers, views own stats, records, rankings, gets notifications |
+| **Fan/Viewer** | Follows live matches, views scores, reacts, predicts, picks fantasy XI |
+
+---
+
+## 3. Plan of Action
+
+### 3.1 Development Phases
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   Browser/PWA                    │
-│  /app (User Pages)     /admin (Admin Pages)      │
-│  WebSocket (/ws/live)  Service Worker (sw.js)    │
-└───────────┬─────────────────────┬───────────────┘
-            │ HTTP/WS             │
-┌───────────▼─────────────────────▼───────────────┐
-│              FastAPI Application                  │
-│  Routers: players, teams, matches, scoring,      │
-│           stats, records, rankings, commentary,   │
-│           user_auth, videos, notifications,       │
-│           probability, features                   │
-│  Services: scoring, stats, records, rankings,    │
-│            win_probability, commentary,           │
-│            notifications                          │
-│  Auth: JWT cookies + OTP email (Brevo)           │
-└───────────┬──────────────────────────────────────┘
-            │ SQLAlchemy ORM
-┌───────────▼──────────────────────────────────────┐
-│          Turso (libsql) Cloud Database            │
-│   Embedded replica: local file ↔ cloud sync      │
-│   All writes go through libsql → synced to cloud │
-│   Data persists across redeploys                  │
-└──────────────────────────────────────────────────┘
+Phase 1: Core Backend          → Models, APIs for players/teams/matches
+Phase 2: Live Scoring           → Ball-by-ball engine, innings management
+Phase 3: Frontend               → Admin panel + user-facing app (Jinja2 templates)
+Phase 4: Real-time              → WebSocket live score updates
+Phase 5: Statistics & Records   → Career stats, all-time records, rankings
+Phase 6: User System            → Registration, OTP login, profiles
+Phase 7: Advanced Features      → Commentary, win probability, H2H, partnerships
+Phase 8: Social Features        → MOM, predictions, reactions, fantasy, milestones
+Phase 9: Notifications          → In-app match notifications
+Phase 10: Persistence & Deploy  → Turso cloud DB, Render deployment, PWA
+```
+
+### 3.2 Technology Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Backend framework | FastAPI | Async support, auto-docs, WebSocket built-in, Python ecosystem |
+| Database (production) | Turso (libsql) | Free tier, SQLite-compatible, cloud-persistent, edge replicas |
+| Database (local) | SQLite | Zero-config fallback for development |
+| ORM | SQLAlchemy | Mature, supports SQLite/PostgreSQL/Turso, declarative models |
+| Auth | JWT + cookies | Stateless, long-lived tokens (365 days), httponly cookies |
+| Email | Brevo HTTP API | Free 300 emails/day, no SMTP setup needed |
+| Hosting | Render | Free tier, auto-deploy from GitHub, supports Python |
+| Frontend | Jinja2 + Vanilla JS | No build step, server-rendered, fast load times |
+| PWA | Service worker | Installable, offline static assets, push-to-refresh |
+
+---
+
+## 4. Analysis
+
+### 4.1 System Architecture
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐
+│   Browser    │◄───►│   FastAPI App     │◄───►│   Turso DB  │
+│  (PWA/JS)   │     │  (Render)         │     │  (Cloud)    │
+└─────┬───────┘     └────────┬─────────┘     └──────┬──────┘
+      │                      │                       │
+      │  WebSocket           │  libsql embedded      │
+      │  /ws/live/{id}       │  replica sync          │
+      │                      │                       │
+      │  HTTP API            │  SQLAlchemy ORM       │
+      │  REST endpoints      │                       │
+      │                      │  Brevo Email API ────►│ Email
+      │  Static files        │                       │
+      │  /static/*           │                       │
+      └──────────────────────┘                       │
+                                                      │
+                             ┌────────────────────────┘
+                             │ Data stored permanently
+                             │ in Turso cloud database
+                             └────────────────────────
+```
+
+### 4.2 Data Flow — Live Scoring
+
+```
+Admin scores a ball
+       │
+       ▼
+POST /scoring/innings/{id}/ball
+       │
+       ▼
+record_ball() service
+  ├── Create Ball record
+  ├── Update Innings totals (runs, wickets, overs)
+  ├── Check innings completion (all out / overs done / target chased)
+  ├── Auto-detect milestones (50, 100, 3W, 5W)
+  └── Commit to DB (→ syncs to Turso cloud)
+       │
+       ▼
+WebSocket broadcast to /ws/live/{match_id}
+       │
+       ▼
+All connected clients receive updated score
+```
+
+### 4.3 Authentication Flow
+
+```
+User enters email
+       │
+       ▼
+POST /api/user/forgot-password
+  ├── Find or auto-create user
+  ├── Generate 6-digit OTP (5 min expiry)
+  └── Send via Brevo email API
+       │
+       ▼
+User enters OTP
+       │
+       ▼
+POST /api/user/verify-otp
+  ├── Validate OTP
+  ├── Generate JWT token (365 days)
+  └── Set httponly cookie "boxcric_token"
+       │
+       ▼
+User is logged in (redirected to profile setup if new)
+```
+
+### 4.4 Database Persistence Architecture (Turso)
+
+```
+On startup:
+  libsql.connect("turso_replica.db", sync_url=turso_url, auth_token=token)
+  → Downloads latest data from Turso cloud to local replica
+  → conn.sync()
+
+SQLAlchemy engine uses libsql connection wrapper:
+  → All reads/writes go through libsql driver
+  → On commit(): conn.commit() + conn.sync()
+  → Data is pushed to Turso cloud immediately
+
+On redeploy (Render):
+  → Local file deleted (ephemeral filesystem)
+  → On next startup: sync() pulls all data back from Turso cloud
+  → Zero data loss
 ```
 
 ---
 
-## Database Models
+## 5. Design
 
-### users
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer | Primary key |
-| name | String(100) | Required |
-| nickname | String(50) | Optional |
-| email | String(200) | Unique, required |
-| phone | String(15) | Optional |
-| hashed_password | String(200) | bcrypt hash |
-| is_active | Boolean | Default true |
-| is_admin | Boolean | Default false |
-| created_at | DateTime | Auto |
-| photo | String(300) | Profile photo path |
-| age | Integer | Optional |
-| height | String(10) | Optional |
-| batting_hand | String(20) | right/left |
-| bowling_hand | String(20) | right/left/none |
-| bowling_type | String(30) | fast/medium/offspin/legspin/orthodox/chinaman/none |
-| gender | String(10) | male/female/other |
-| player_role | String(30) | batsman/bowler/allrounder/wk_batsman |
-| profile_complete | Boolean | Default false |
-| profile_edits | Integer | Max 5 full edits |
+### 5.1 Database Schema (ER Diagram)
 
-### players
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer | Primary key |
-| name | String(100) | Required |
-| nickname | String(50) | Optional |
-| batting_style | Enum | right_hand / left_hand |
-| bowling_style | Enum | right_arm_fast / left_arm_fast / right_arm_medium / left_arm_medium / right_arm_offspin / left_arm_orthodox / right_arm_legspin / left_arm_chinaman / none |
-| phone | String(15) | Optional |
-| player_role | String(30) | Optional |
-| user_id | Integer | FK → users.id (links registered user to player) |
+```
+                    ┌──────────┐
+                    │  users   │
+                    │──────────│
+                    │ id (PK)  │
+                    │ name     │
+                    │ email    │
+                    │ is_admin │
+                    │ ...      │
+                    └────┬─────┘
+                         │ user_id
+                    ┌────▼─────┐
+                    │ players  │
+                    │──────────│
+                    │ id (PK)  │
+                    │ name     │
+                    │ bat/bowl │
+                    └────┬─────┘
+                         │
+              ┌──────────┼──────────┐
+              │ team_players (M:N)  │
+              │    team_id ──┐      │
+              │    player_id─┘      │
+              └──────────┬──────────┘
+                         │
+                    ┌────▼─────┐          ┌───────────┐
+                    │  teams   │◄────────►│  matches   │
+                    │──────────│ team1_id │───────────│
+                    │ id (PK)  │ team2_id │ id (PK)   │
+                    │ name     │          │ status    │
+                    │ captain  │          │ toss/win  │
+                    │ host     │          │ overs     │
+                    └──────────┘          └─────┬─────┘
+                                                │
+                                          ┌─────▼─────┐
+                                          │  innings   │
+                                          │───────────│
+                                          │ id (PK)   │
+                                          │ match_id  │
+                                          │ runs/wkts │
+                                          │ overs     │
+                                          └─────┬─────┘
+                                                │
+                                          ┌─────▼─────┐
+                                          │   balls    │
+                                          │───────────│
+                                          │ id (PK)   │
+                                          │ innings_id│
+                                          │ batter    │
+                                          │ bowler    │
+                                          │ runs/extra│
+                                          │ wicket    │
+                                          └───────────┘
 
-### teams
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer | Primary key |
-| name | String(100) | Unique, required |
-| short_name | String(10) | e.g. "CSK" |
-| captain_id | Integer | FK → players.id |
-| vice_captain_id | Integer | FK → players.id |
-| host_id | Integer | FK → users.id (can score matches) |
-| cohost_id | Integer | FK → users.id (can score matches) |
+  Related tables: notifications, videos, match_photos,
+                  mom_votes, match_predictions, reactions, milestones
+```
 
-**team_players** (junction): id, team_id, player_id
+### 5.2 API Design Principles
+- **RESTful** — Standard HTTP methods (GET/POST/PUT/DELETE)
+- **Resource-based URLs** — `/players/`, `/teams/{id}`, `/matches/{id}/toss`
+- **JSON responses** — Pydantic schemas for validation and serialization
+- **Cookie auth** — httponly JWT cookie for session management
+- **WebSocket** — `/ws/live/{match_id}` for real-time score updates
 
-### matches
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer | Primary key |
-| title | String(200) | Optional |
-| team1_id / team2_id | Integer | FK → teams.id |
-| overs | Integer | Default 20 |
-| venue | String(200) | Optional |
-| date | DateTime | Match date |
-| status | Enum | scheduled / toss / live / innings_break / completed / abandoned |
-| toss_winner_id | Integer | FK → teams.id |
-| toss_decision | Enum | bat / bowl |
-| winner_id | Integer | FK → teams.id |
-| result_summary | String(300) | e.g. "Team A won by 5 wickets" |
-
-### innings
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer | Primary key |
-| match_id | Integer | FK → matches.id |
-| innings_number | Integer | 1, 2 (3, 4 for super overs) |
-| batting_team_id / bowling_team_id | Integer | FK → teams.id |
-| total_runs / total_wickets | Integer | Running totals |
-| total_overs / total_balls | Integer | Completed overs + balls in current over |
-| extras | Integer | Total extras |
-| is_completed | Boolean | Auto-set when all out / overs done / target chased |
-
-### balls
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer | Primary key |
-| innings_id | Integer | FK → innings.id |
-| over_number | Integer | 0-indexed |
-| ball_number | Integer | 1-6 within over |
-| batter_id / bowler_id / non_striker_id | Integer | FK → players.id |
-| runs_scored | Integer | Runs off the bat |
-| extra_type | Enum | none / wide / no_ball / bye / leg_bye |
-| extra_runs | Integer | Extra runs |
-| is_wicket | Boolean | Wicket on this ball? |
-| wicket_type | Enum | bowled / caught / lbw / run_out / stumped / hit_wicket / retired |
-| dismissed_player_id / fielder_id | Integer | FK → players.id |
-| is_legal | Boolean | False for wides/no-balls |
-| is_correction | Boolean | True if this ball was re-scored after undo |
-
-### notifications
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer | Primary key |
-| user_id | Integer | FK → users.id |
-| match_id | Integer | FK → matches.id |
-| type | String(50) | match_created / toss / match_started / match_ended |
-| title / message | String | Notification content |
-| is_read | Boolean | Default false |
-| created_at | DateTime | Auto |
-
-### Other tables
-- **videos**: id, title, description, video_url, thumbnail, uploaded_by, uploaded_by_id, created_at
-- **match_photos**: id, match_id, photo_url, caption, uploaded_by, created_at
-- **mom_votes**: id, match_id, player_id, voter_id, created_at
-- **match_predictions**: id, match_id, user_id, predicted_winner_id, is_correct, created_at
-- **reactions**: id, match_id, ball_id, user_id, emoji, created_at
-- **milestones**: id, player_id, match_id, badge, title, description, created_at
+### 5.3 Frontend Architecture
+- **Two interfaces** — Admin (`/admin/*`) for full control, User (`/app/*`) for read-only + social
+- **Server-rendered** — Jinja2 templates with `{% extends "base.html" %}`
+- **Client-side data** — Vanilla JS `fetch()` calls to REST APIs
+- **Dark/light theme** — CSS variables with `[data-theme="dark"]`, persisted in localStorage
+- **PWA** — Service worker caches static assets only (not HTML/API responses)
+- **Mobile-first** — Bottom navigation bar, responsive grid, touch gestures
 
 ---
 
-## API Endpoints
+## 6. Implementation
 
-### Players `/players`
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/players/` | Create player |
-| GET | `/players/` | List all players |
-| GET | `/players/{id}` | Get player |
-| PUT | `/players/{id}` | Update player |
-| DELETE | `/players/{id}` | Delete player |
+### 6.1 Technology Stack
 
-### Teams `/teams`
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/teams/` | Create team |
-| GET | `/teams/` | List all teams (with players) |
-| GET | `/teams/{id}` | Get team |
-| PUT | `/teams/{id}` | Update team |
-| DELETE | `/teams/{id}` | Delete team |
-| POST | `/teams/{id}/players` | Add player to team |
-| DELETE | `/teams/{id}/players/{pid}` | Remove player from team |
-| POST | `/teams/{id}/captain` | Set captain / vice-captain |
-| POST | `/teams/{id}/host` | Set host / co-host (scorer) |
+| Component | Technology | Version |
+|-----------|-----------|---------|
+| Language | Python | 3.11.11 |
+| Web Framework | FastAPI | 0.135+ |
+| ORM | SQLAlchemy | 2.0+ |
+| Database | Turso (libsql-experimental) | 0.0.55 |
+| Auth | python-jose (JWT) + bcrypt | — |
+| Template Engine | Jinja2 | 3.1+ |
+| ASGI Server | Uvicorn | — |
+| Email | Brevo HTTP API | — |
+| Hosting | Render (free tier) | — |
+| Version Control | Git + GitHub | — |
 
-### Matches `/matches`
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/matches/` | Create match → notifies all players |
-| GET | `/matches/` | List matches (optional `?status=live`) |
-| GET | `/matches/{id}` | Get match with innings |
-| POST | `/matches/{id}/toss` | Record toss → creates 2 innings |
-| POST | `/matches/{id}/start` | Set LIVE → notifies players |
-| POST | `/matches/{id}/end` | Calculate result → notifies players |
-| POST | `/matches/{id}/super-over` | Create super-over innings |
-
-### Live Scoring `/scoring`
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/scoring/innings/{id}/ball` | Record ball (host/co-host only) |
-| GET | `/scoring/match/{id}/live` | Live score summary |
-| GET | `/scoring/innings/{id}/scorecard` | Full batting + bowling scorecard |
-| GET | `/scoring/innings/{id}/lastball` | Last ball state (striker, bowler, dismissed list) |
-| GET | `/scoring/match/{id}/graph` | Over-by-over data for charts |
-
-### Stats & Records
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/stats/player/{id}` | Full career stats |
-| GET | `/records/` | All-time records (7 categories) |
-| GET | `/api/rankings/` | Batting, bowling, all-rounder rankings |
-| GET | `/api/probability/{id}` | Live win probability |
-| GET | `/api/commentary/match/{id}` | Ball-by-ball commentary |
-
-### User Auth `/api/user`
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/user/register` | Register → sets auth cookie |
-| POST | `/api/user/login` | Login → sets auth cookie |
-| POST | `/api/user/logout` | Clear cookie |
-| GET | `/api/user/me` | Current user info |
-| GET | `/api/user/all` | List all users |
-| DELETE | `/api/user/{id}` | Delete user |
-| POST | `/api/user/profile` | Update profile (5 edit limit) |
-| POST | `/api/user/photo` | Upload profile photo |
-| POST | `/api/user/forgot-password` | Send OTP email |
-| POST | `/api/user/verify-otp` | Verify OTP → login |
-| POST | `/api/user/reset-password` | Reset password with OTP |
-| POST | `/api/user/admin/bootstrap` | Make yourself first admin (one-time) |
-
-### Notifications `/api/notifications`
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/notifications/` | Get user's notifications |
-| POST | `/api/notifications/read-all` | Mark all read |
-| POST | `/api/notifications/{id}/read` | Mark one read |
-
-### Features `/api/features`
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/features/mom/vote` | Vote Man of the Match |
-| GET | `/api/features/mom/{id}` | Get MOM votes |
-| POST | `/api/features/predict` | Predict match winner |
-| GET | `/api/features/predictions/{id}` | Prediction stats |
-| POST | `/api/features/react` | Add emoji reaction |
-| DELETE | `/api/features/undo/{id}` | Undo last ball (one-time correction) |
-| GET | `/api/features/h2h/{p1}/{p2}` | Head-to-head stats |
-| GET | `/api/features/partnerships/{id}` | Batting partnerships |
-| GET | `/api/features/milestones` | Player milestones |
-| POST | `/api/features/photos/upload` | Upload match photo |
-| GET | `/api/features/calendar` | Match schedule calendar |
-| POST | `/api/features/fantasy/pick` | Pick fantasy XI |
-| GET | `/api/features/fantasy/leaderboard/{id}` | Fantasy leaderboard |
-
-### Videos `/api/videos`
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/videos/` | List videos |
-| POST | `/api/videos/` | Add video by URL |
-| POST | `/api/videos/upload` | Upload video file |
-| DELETE | `/api/videos/{id}` | Delete video |
-
-### Other
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| WS | `/ws/live/{match_id}` | WebSocket for live score updates |
-
----
-
-## User Pages (`/app`)
-
-| Page | Description |
-|------|-------------|
-| **Home** (`/app`) | Welcome banner, live matches, recent results, upcoming matches, quick stats |
-| **Login** (`/app/login`) | OTP-based login (email → OTP → verify), profile setup wizard |
-| **Matches** (`/app/matches`) | Match list with filter tabs (All / Live / Upcoming / Completed) |
-| **Match Detail** (`/app/match/{id}`) | Live score with WebSocket, scorecard, commentary, win probability, over-by-over graph, reactions, predictions, MOM voting, match photos |
-| **Players** (`/app/players`) | Player grid with stats modal, community members section |
-| **Records** (`/app/records`) | All-time records cards |
-| **Rankings** (`/app/rankings`) | Tabbed rankings with podium + table |
-| **Videos** (`/app/videos`) | Video gallery (YouTube embed + uploads) |
-| **Profile** (`/app/profile`) | View/edit profile with photo upload, 5-edit limit |
-
-**Common UI**: Notification bell with unread badge + dropdown, dark/light theme toggle, mobile bottom navigation, PWA install banner, pull-to-refresh.
-
----
-
-## Admin Pages (`/admin`)
-
-| Page | Description |
-|------|-------------|
-| **Home** (`/admin`) | Admin dashboard |
-| **Matches** (`/admin/matches`) | Create / manage all matches |
-| **New Match** (`/admin/new-match`) | Create match form |
-| **Match Detail** (`/admin/match/{id}`) | Full match control (toss, start, end, super over, undo) |
-| **Score** (`/admin/score/{id}`) | Live scoring console (run buttons, extras, wickets, new batter/bowler modals) |
-| **Players** (`/admin/players`) | CRUD players |
-| **Teams** (`/admin/teams`) | CRUD teams, manage roster, set captain/host |
-| **Records** (`/admin/records`) | View records |
-| **Rankings** (`/admin/rankings`) | View rankings |
-| **Videos** (`/admin/videos`) | Manage videos |
-| **Users** (`/admin/users`) | View/delete registered users, see admin status |
-
----
-
-## Services
-
-| Service | Key Functions |
-|---------|---------------|
-| **Scoring** | `record_ball()` — updates innings totals, handles extras/wickets, auto-completes innings. `get_live_score()` — run rate, target, required rate. `get_scorecard()` — batting + bowling stats. |
-| **Stats** | `get_player_career_stats()` — runs, avg, SR, HS, 50s/100s, wickets, bowling avg, economy |
-| **Records** | `get_all_records()` — 7 categories: highest score, best bowling, team totals, career bests |
-| **Rankings** | Rating system: batting (runs 40%, avg 25%, SR 15%, boundaries 10%, consistency 10%), bowling (wickets 35%, economy 25%, avg 20%, SR 10%, consistency 10%), all-rounder (average + balance bonus) |
-| **Win Probability** | 1st innings: project final score. 2nd innings: chase analysis with CRR vs RRR, wickets, batting depth |
-| **Commentary** | Auto-generated ball-by-ball text + over summaries |
-| **Notifications** | Find all users in a match (players + hosts) → create notifications on match events |
-
----
-
-## Auth System
-
-- **Passwords**: bcrypt hashed
-- **Tokens**: JWT (HS256), 365-day expiry, stored in `boxcric_token` httponly cookie
-- **OTP Login**: 6-digit code, 5-minute expiry, in-memory store, sent via Brevo email API
-- **Scorer Authorization**: Only team host/co-host can score matches
-- **Admin Bootstrap**: `POST /api/user/admin/bootstrap` — first user to call it becomes admin (only works when no admins exist)
-
----
-
-## Notifications
-
-Players are notified (in-app) when:
-- **Match created** — "You've been selected for Team A vs Team B"
-- **Toss done** — "Team A won the toss and chose to bat"
-- **Match started** — "Team A vs Team B is now LIVE!"
-- **Match ended** — Shows result summary
-
-Notification bell in header shows unread count, polls every 30 seconds.
-
----
-
-## WebSocket (Live Score)
-
-- **Endpoint**: `ws://host/ws/live/{match_id}`
-- Sends initial score on connect
-- Keeps alive with ping/pong
-- Broadcasts live score updates to all connected clients
-- Auto-reconnects after 3 seconds on disconnect
-
----
-
-## PWA & Frontend
-
-- **Service Worker** (`sw.js`): Network-first for pages/API, cache-first for static assets. Cache version: `boxcric-v3`
-- **Manifest**: Standalone mode, portrait orientation, cricket green theme
-- **Theme**: Dark/light mode toggle, persisted in localStorage
-- **Mobile**: Bottom navigation bar, haptic feedback on scoring, pull-to-refresh
-- **Install Banner**: Prompts users to add to home screen
-
----
-
-## Database & Deployment
-
-### Database (Turso)
-- **Type**: libsql (SQLite-compatible, cloud-hosted)
-- **Driver**: `libsql-experimental` embedded replica
-- **How it works**: Local SQLite file (`turso_replica.db`) synced with Turso cloud. All operations go through `libsql` connection → synced on every commit.
-- **Persistence**: Data survives redeploys, restarts, and sleep/wake cycles.
-- **Dashboard**: https://turso.tech (database: `boxcric-praneeth`)
-
-### Deployment (Render)
-- **Platform**: Render free tier
-- **Build**: `pip install -r requirements.txt`
-- **Start**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- **Python**: 3.11.11 (pinned in `runtime.txt`)
-- **Keep-alive**: Self-ping every 10 minutes to prevent sleep
-
-### Auto-Migrations
-On startup, the app:
-1. Creates all tables via `Base.metadata.create_all()`
-2. Runs ALTER TABLE migrations for any missing columns
-3. Syncs registered users to player records
-
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes (on Render) | `libsql://your-db.turso.io?authToken=...` |
-| `SECRET_KEY` | Recommended | JWT signing key (default: `boxcric-secret-change-in-production-2026`) |
-| `BREVO_API_KEY` | For email OTP | Brevo API key (free 300 emails/day) |
-| `BREVO_SENDER_EMAIL` | For email OTP | Sender email for OTP emails |
-| `RENDER_EXTERNAL_URL` | Auto-set by Render | Used for keep-alive ping |
-
----
-
-## File Structure
+### 6.2 Project Structure
 
 ```
 BOXcric/
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI app, routes, startup
+│   ├── config.py            # Environment config (DATABASE_URL, etc.)
+│   ├── database.py          # SQLAlchemy engine + Turso connection
+│   ├── auth.py              # JWT, password hashing, OTP, cookie auth
+│   ├── models/              # SQLAlchemy table models
+│   │   ├── user.py          # User table
+│   │   ├── player.py        # Player table
+│   │   ├── team.py          # Team + TeamPlayer tables
+│   │   ├── match.py         # Match table with status enum
+│   │   ├── innings.py       # Innings table
+│   │   ├── ball.py          # Ball-by-ball table
+│   │   ├── video.py         # Video table
+│   │   ├── notification.py  # Notification table
+│   │   └── extras.py        # MatchPhoto, MOMVote, Prediction, Reaction, Milestone
+│   ├── routers/             # API endpoint handlers
+│   │   ├── players.py       # CRUD for players
+│   │   ├── teams.py         # CRUD for teams + player assignment
+│   │   ├── matches.py       # Match lifecycle (create → toss → start → end)
+│   │   ├── scoring.py       # Ball recording + live score + scorecard
+│   │   ├── stats.py         # Player career statistics
+│   │   ├── records.py       # All-time records
+│   │   ├── rankings.py      # Weighted ranking system
+│   │   ├── probability.py   # Live win probability engine
+│   │   ├── commentary.py    # Ball-by-ball commentary generator
+│   │   ├── user_auth.py     # Registration, login, OTP, profile
+│   │   ├── videos.py        # Video upload + URL management
+│   │   ├── features.py      # MOM, predictions, reactions, H2H, etc.
+│   │   └── notifications.py # Notification CRUD
+│   ├── schemas/             # Pydantic request/response models
+│   │   ├── player.py, team.py, match.py, score.py, user.py, video.py
+│   ├── services/            # Business logic
+│   │   ├── scoring.py       # record_ball(), get_live_score(), get_scorecard()
+│   │   ├── stats.py         # Career stats calculation
+│   │   ├── records.py       # All-time record queries
+│   │   ├── rankings.py      # Weighted ranking algorithm
+│   │   ├── win_probability.py # Probability engine
+│   │   ├── commentary.py    # Commentary text generator
+│   │   └── notifications.py # Send notifications to match participants
+│   └── websocket/
+│       └── live_score.py    # WebSocket connection manager
+├── templates/               # Jinja2 HTML templates
+│   ├── base.html            # Admin layout
+│   ├── index.html           # Admin dashboard
+│   ├── matches.html         # Admin match list
+│   ├── match_detail.html    # Admin match detail + scorecard
+│   ├── score.html           # Live scoring console
+│   ├── new_match.html       # Create match form
+│   ├── players.html         # Admin player management
+│   ├── teams.html           # Admin team management
+│   ├── records.html, rankings.html, videos.html, users.html
+│   └── user/                # User-facing templates
+│       ├── base.html        # User layout (header, nav, notification bell)
+│       ├── home.html        # Home with live/recent/upcoming matches
+│       ├── login.html       # OTP login + registration + profile setup
+│       ├── profile.html     # Profile editor
+│       ├── matches.html, match_detail.html, players.html
+│       ├── records.html, rankings.html, videos.html
+├── static/
+│   ├── css/style.css        # Full UI stylesheet (dark/light theme)
+│   ├── js/app.js            # Shared JS (API helper, toast, theme, PWA)
+│   ├── manifest.json        # PWA manifest
+│   ├── sw.js                # Service worker (cache static assets only)
+│   ├── icons/, images/      # App icons and images
+│   └── uploads/             # User-uploaded photos and videos
+├── requirements.txt         # Python dependencies
 ├── Procfile                 # Render start command
 ├── runtime.txt              # Python version (3.11.11)
-├── requirements.txt         # Dependencies
-├── app/
-│   ├── main.py              # FastAPI app, routes, migrations, keep-alive
-│   ├── config.py            # DATABASE_URL, app metadata
-│   ├── database.py          # SQLAlchemy engine + Turso wrapper
-│   ├── auth.py              # JWT, bcrypt, OTP, admin check
-│   ├── models/              # SQLAlchemy models (10 tables)
-│   ├── routers/             # API endpoints (13 routers)
-│   ├── schemas/             # Pydantic request/response models
-│   ├── services/            # Business logic (7 services)
-│   └── websocket/           # Live score WebSocket manager
-├── templates/
-│   ├── base.html            # Admin base template
-│   ├── user/                # User-facing pages (10 templates)
-│   └── *.html               # Admin pages (10 templates)
-└── static/
-    ├── manifest.json        # PWA manifest
-    ├── sw.js                # Service worker
-    ├── css/                 # Styles (dark/light theme)
-    ├── js/                  # Frontend JS (API helper, UI components)
-    ├── icons/               # PWA icons
-    └── uploads/             # User photos, match photos, videos
+└── .env.example             # Environment variable template
 ```
+
+### 6.3 Key Implementation Details
+
+#### 6.3.1 Turso Database Integration
+The app uses **Turso embedded replicas** for database persistence:
+- A `libsql` connection creates a local SQLite file (`turso_replica.db`) synced with the Turso cloud
+- A custom `_LibsqlConnectionWrapper` class wraps the libsql connection to be compatible with SQLAlchemy's `sqlite3.Connection` interface
+- On every `commit()`, data is synced to Turso cloud via `conn.sync()`
+- On startup, `conn.sync()` pulls all data from cloud → local replica
+- This ensures data survives Render's ephemeral filesystem
+
+#### 6.3.2 Scoring Engine
+The `record_ball()` function in `services/scoring.py`:
+1. Validates the delivery (legal vs illegal)
+2. Calculates over/ball numbers
+3. Creates a `Ball` record with all metadata
+4. Updates `Innings` totals (runs, wickets, overs, extras)
+5. Checks innings completion conditions:
+   - All out (wickets ≥ team_size - 1)
+   - Overs completed
+   - Target chased (2nd innings)
+   - Super over limits (1 over, 2 wickets max)
+6. Supports undo/correction (one-time per ball via `is_correction` flag)
+
+#### 6.3.3 Rankings Algorithm
+Weighted rating system:
+- **Batting**: Runs (40%) + Average (25%) + Strike Rate (15%) + Boundaries (10%) + Consistency (10%)
+- **Bowling**: Wickets (35%) + Economy (25%) + Average (20%) + Strike Rate (10%) + Consistency (10%)
+- **All-rounder**: Combined batting + bowling rating (balanced weights)
+
+#### 6.3.4 Win Probability Engine
+Factors considered:
+- Current run rate vs required run rate
+- Wickets remaining
+- Batting team's strength (historical average)
+- Tailender detection
+- Set batsman bonus
+- Overs remaining
+
+#### 6.3.5 Notification System
+- Notifications created for all users linked to players in a match (via `Player.user_id`) plus team hosts/cohosts
+- Triggered on: match creation, toss, match start, match end
+- UI: Bell icon in header with unread badge, dropdown panel, 30-second polling
+
+#### 6.3.6 PWA Implementation
+- Service worker (`sw.js`): Network-first strategy, only caches `/static/*` assets (never HTML/API)
+- Manifest with app name, icons, theme color
+- Install banner prompt
+- Pull-to-refresh gesture
+- Cache version (`boxcric-v3`) for cache busting
+
+---
+
+## 7. Environment Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | Database connection string | `sqlite:///./boxcric.db` |
+| `SECRET_KEY` | JWT signing key | `boxcric-secret-change-in-production-2026` |
+| `BREVO_API_KEY` | Brevo email API key | (empty — OTP logged to console) |
+| `BREVO_SENDER_EMAIL` | Brevo sender email | (empty) |
+| `RENDER_EXTERNAL_URL` | Render app URL for keep-alive | `https://boxcric.onrender.com` |
+
+### Database URL Formats Supported
+```
+sqlite:///./boxcric.db                              # Local SQLite (default)
+libsql://db-name.aws-us-west-2.turso.io?authToken=… # Turso cloud
+postgresql://user:pass@host/db                       # PostgreSQL (Neon, etc.)
+```
+
+---
+
+## 8. Deployment
+
+### 8.1 Render Configuration
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- **Python Version**: `3.11.11` (pinned in `runtime.txt`)
+- **Auto-deploy**: Triggered on push to `main` branch
+
+### 8.2 Keep-Alive
+A background task pings `/health` every 10 minutes to prevent Render's free-tier from sleeping.
+
+### 8.3 URLs
+| URL | Purpose |
+|-----|---------|
+| `https://boxcric.onrender.com/app` | User-facing app |
+| `https://boxcric.onrender.com/admin` | Admin panel |
+| `https://boxcric.onrender.com/health` | Health check |
+| `https://boxcric.onrender.com/docs` | Auto-generated API docs (Swagger) |
+
+---
+
+## 9. Testing & Verification
+
+### 9.1 Data Persistence Test
+1. Create a player via admin panel
+2. Kill the server + delete local database file
+3. Restart the server
+4. Verify the player still exists (synced from Turso cloud)
+
+### 9.2 Key Test Scenarios
+| Scenario | Expected Result |
+|----------|----------------|
+| Create match with 2 teams | Match created, players notified |
+| Record toss | Innings created, status → TOSS |
+| Score a ball (6 runs) | Ball recorded, innings total updated, WebSocket broadcast |
+| Undo last ball | Ball deleted, innings totals reversed, correction flag set |
+| End match | Result calculated, notifications sent |
+| User registers via OTP | OTP emailed, user created, profile setup |
+| Redeploy on Render | All data persists from Turso cloud |
+
+---
+
+## 10. Future Enhancements
+
+| Feature | Description |
+|---------|-------------|
+| Tournament/League mode | Points table, group stages, knockouts |
+| Push notifications | Browser push API for match events |
+| Advanced analytics | Wagon wheel, pitch map, scoring zones |
+| Multi-language | Hindi, Telugu, etc. |
+| Native mobile app | React Native or Flutter wrapper |
+| Umpire DRS | Decision review with video replay |
+| AI commentary | GPT-powered natural language commentary |
+
+---
+
+*Document generated: March 2026*
+*Project: BOXcric — Cricket Match Management Platform*
