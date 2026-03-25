@@ -131,7 +131,7 @@ async def shutdown_keep_alive():
         _keep_alive_task.cancel()
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "ok"}
 
