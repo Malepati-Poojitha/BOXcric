@@ -63,6 +63,18 @@ def delete_player(player_id: int, db: Session = Depends(get_db)):
         db.delete(v)
     for m in db.query(Milestone).filter(Milestone.player_id == player_id).all():
         db.delete(m)
+    # Null out ball references so match history stays but player is removed
+    from app.models.ball import Ball
+    for b in db.query(Ball).filter(Ball.batter_id == player_id).all():
+        b.batter_id = None
+    for b in db.query(Ball).filter(Ball.bowler_id == player_id).all():
+        b.bowler_id = None
+    for b in db.query(Ball).filter(Ball.non_striker_id == player_id).all():
+        b.non_striker_id = None
+    for b in db.query(Ball).filter(Ball.dismissed_player_id == player_id).all():
+        b.dismissed_player_id = None
+    for b in db.query(Ball).filter(Ball.fielder_id == player_id).all():
+        b.fielder_id = None
     db.delete(player)
     db.commit()
     return {"detail": "Player deleted"}

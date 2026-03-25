@@ -30,8 +30,8 @@ class Ball(Base):
     innings_id = Column(Integer, ForeignKey("innings.id"), nullable=False)
     over_number = Column(Integer, nullable=False)      # 0-indexed over
     ball_number = Column(Integer, nullable=False)       # 1-6 within the over
-    batter_id = Column(Integer, ForeignKey("players.id"), nullable=False)
-    bowler_id = Column(Integer, ForeignKey("players.id"), nullable=False)
+    batter_id = Column(Integer, ForeignKey("players.id"), nullable=True)
+    bowler_id = Column(Integer, ForeignKey("players.id"), nullable=True)
     non_striker_id = Column(Integer, ForeignKey("players.id"), nullable=True)
     runs_scored = Column(Integer, default=0)            # runs off the bat
     extra_type = Column(SQLEnum(ExtraType), default=ExtraType.NONE)
