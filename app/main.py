@@ -136,6 +136,21 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.get("/debug/db")
+def debug_db():
+    """Temporary debug endpoint to check DB connectivity on Render."""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text("SELECT count(*) FROM players"))
+        count = result.fetchone()[0]
+        return {"status": "ok", "players_count": count}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "type": type(e).__name__}
+    finally:
+        db.close()
+
+
 # Static files & templates
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
