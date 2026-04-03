@@ -1,6 +1,7 @@
 import os
 import random
 import json
+import ssl
 import urllib.request
 import urllib.error
 from datetime import datetime, timedelta
@@ -114,7 +115,12 @@ def send_otp_email(to_email: str, otp: str, user_name: str = "User") -> bool:
             },
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        try:
+            import certifi
+            ctx = ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            ctx = ssl.create_default_context()
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
             result = json.loads(resp.read().decode())
             print(f"[EMAIL] Sent OTP to {to_email} via Brevo: {result}")
         return True

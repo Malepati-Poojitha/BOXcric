@@ -254,6 +254,12 @@ function sendOtp() {
       if (res.email_sent) {
         document.getElementById('otpMsg').textContent = 'OTP sent to ' + email + ' \u2709\ufe0f';
         toast('OTP sent to your email! Check inbox \u2709\ufe0f', 'success');
+      } else if (res.demo_otp) {
+        document.getElementById('otpMsg').textContent = 'Demo Mode — your OTP is shown below';
+        document.getElementById('otpBanner').style.display = 'block';
+        document.getElementById('otpBanner').innerHTML = '<div style="font-size:13px;opacity:0.9">\ud83d\udd10 Demo Mode (email not configured)</div><div style="font-size:28px;font-weight:800;letter-spacing:8px;margin:8px 0">' + res.demo_otp + '</div><div style="font-size:12px;opacity:0.5">Expires in 5 minutes</div>';
+        document.getElementById('otpInput').value = res.demo_otp;
+        toast('Demo mode — OTP auto-filled!', 'success');
       } else {
         document.getElementById('otpMsg').textContent = 'OTP generated for ' + email + ' \u2709\ufe0f';
         document.getElementById('otpBanner').style.display = 'block';

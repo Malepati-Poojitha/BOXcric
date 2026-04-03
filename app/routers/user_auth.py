@@ -315,16 +315,17 @@ def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     email_sent = send_otp_email(user.email, otp, user.name)
     
     result = {
-        "detail": f"OTP sent to {user.email}" if email_sent else f"OTP generated for {otp_key} (check server logs)",
+        "detail": f"OTP sent to {user.email}" if email_sent else f"OTP generated (email not configured)",
         "email_sent": email_sent,
         "expires_in_minutes": 5,
         "user_name": user.name,
         "is_new_user": not user.profile_complete,
         "otp_key": otp_key,
     }
-    # Log OTP to server console for debugging (never send to frontend)
+    # If email not configured, include OTP in response so login still works (demo mode)
     if not email_sent:
-        print(f"[OTP] {otp_key}: {otp} (email not configured)")
+        result["demo_otp"] = otp
+        print(f"[OTP] {otp_key}: {otp} (email not configured — demo mode)")
     return result
 
 
