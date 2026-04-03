@@ -60,14 +60,21 @@ if _is_libsql:
             self._conn = libsql.connect(
                 "turso_replica.db", sync_url=_turso_url, auth_token=_auth_token
             )
-            self._conn.sync()
+            try:
+                self._conn.sync()
+                print("[TURSO] Initial sync OK")
+            except Exception as e:
+                print(f"[TURSO] Initial sync warning: {e} — will retry on first query")
 
         def cursor(self):
             return _LibsqlCursorWrapper(self._conn.cursor())
 
         def commit(self):
             self._conn.commit()
-            self._conn.sync()
+            try:
+                self._conn.sync()
+            except Exception as e:
+                print(f"[TURSO] Sync after commit warning: {e}")
 
         def rollback(self):
             self._conn.rollback()
