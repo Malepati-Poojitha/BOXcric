@@ -67,8 +67,11 @@ function renderMatchDetail() {
       <h1 class="page-title" style="margin-bottom:2px">${m.title || t1.name + ' vs ' + t2.name}</h1>
       <div class="text-sm text-muted">${m.venue || ''} ${m.date ? '• ' + new Date(m.date).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : ''} • ${m.overs} overs</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      ${(m.status === 'live' && canScore) ? '<a href="/app/score/' + MATCH_ID + '" class="btn btn-accent btn-sm">⚡ Score Match</a>' : ''}
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+      ${(m.status === 'scheduled' && canScore) ? '<button class="btn btn-primary btn-sm" onclick="showTossModal()">\ud83e\ude99 Record Toss</button>' : ''}
+      ${(m.status === 'toss' && canScore) ? '<button class="btn btn-primary btn-sm" onclick="startMatch()">\ud83c\udfcf Start Match</button>' : ''}
+      ${(m.status === 'live' && canScore) ? '<a href="/app/score/' + MATCH_ID + '" class="btn btn-accent btn-sm">\u26a1 Score Match</a>' : ''}
+      ${(m.status === 'live' && canScore) ? '<button class="btn btn-outline btn-sm" onclick="endMatch()">\ud83c\udfc1 End Match</button>' : ''}
       ${statusBadge(m.status)}
     </div>
   </div>`;
@@ -109,6 +112,7 @@ function renderMatchDetail() {
   if (m.result_summary) {
     html += `<div class="card mt-4"><div class="card-body text-center">
       <div class="text-lg fw-bold" style="color:var(--win-green)">🏆 ${m.result_summary}</div>
+      ${(m.result_summary === 'Match Tied' && canScore) ? '<button class="btn btn-accent btn-sm mt-2" onclick="startSuperOver()">⚡ Start Super Over</button>' : ''}
     </div></div>`;
   }
 
@@ -343,6 +347,83 @@ async function loadMatchGraph() {
 
   h += '</div></div>';
   container.innerHTML = h;
+}
+
+// ===== HOST/CO-HOST MATCH MANAGEMENT =====
+
+async function showTossModal() {
+  var m = matchData;
+  var t1 = teamsMap[m.team1_id] || {name:'Team 1'};
+  var t2 = teamsMap[m.team2_id] || {name:'Team 2'};
+  var overlay = document.createElement('div');
+  overlay.id = 'tossOverlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = '<div style="background:var(--card-bg);border-radius:12px;padding:24px;max-width:360px;width:90%">'
+    + '<h3 style="margin:0 0 16px;font-size:18px">🪙 Record Toss</h3>'
+    + '<div class="form-group"><label>Toss won by</label><select id="tossWinner" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border)">'
+    + '<option value="' + m.team1_id + '">' + t1.name + '</option>'
+    + '<option value="' + m.team2_id + '">' + t2.name + '</option>'
+    + '</select></div>'
+    + '<div class="form-group"><label>Chose to</label><select id="tossDecision" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border)">'
+    + '<option value="bat">Bat</option><option value="bowl">Bowl</option></select></div>'
+    + '<div style="display:flex;gap:8px;margin-top:16px">'
+    + '<button class="btn btn-outline btn-block" onclick="document.getElementById(\'tossOverlay\').remove()">Cancel</button>'
+    + '<button class="btn btn-primary btn-block" onclick="submitToss()">Confirm</button>'
+    + '</div></div>';
+  document.body.appendChild(overlay);
+}
+
+async function submitToss() {
+  var winnerId = parseInt(document.getElementById('tossWinner').value);
+  var decision = document.getElementById('tossDecision').value;
+  var res = await api('/matches/' + MATCH_ID + '/toss', 'POST', {
+    toss_winner_id: winnerId, toss_decision: decision
+  });
+  var ov = document.getElementById('tossOverlay');
+  if (ov) ov.remove();
+  if (res && res.id) {
+    toast('Toss recorded!', 'success');
+    await loadMatch();
+  } else {
+    toast(res && res.detail ? res.detail : 'Failed', 'error');
+  }
+}
+
+async function startMatch() {
+  confirmAction('Start this match?', async function() {
+    var res = await api('/matches/' + MATCH_ID + '/start', 'POST');
+    if (res && res.id) {
+      toast('Match started! 🏏', 'success');
+      await loadMatch();
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed', 'error');
+    }
+  });
+}
+
+async function endMatch() {
+  confirmAction('End this match? This will finalize the result.', async function() {
+    var res = await api('/matches/' + MATCH_ID + '/end', 'POST');
+    await api('/api/features/milestones/check/' + MATCH_ID);
+    if (res && res.id) {
+      toast('Match completed!', 'success');
+      await loadMatch();
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed', 'error');
+    }
+  });
+}
+
+async function startSuperOver() {
+  confirmAction('Start a Super Over? Both teams will bat 1 over each.', async function() {
+    var res = await api('/matches/' + MATCH_ID + '/super-over', 'POST');
+    if (res && res.id) {
+      toast('⚡ Super Over started!', 'success');
+      await loadMatch();
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed', 'error');
+    }
+  });
 }
 </script>
 {% endblock %}
