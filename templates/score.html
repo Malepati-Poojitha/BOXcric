@@ -341,7 +341,18 @@ function validateSelection() {
 async function scoreBall(runs) {
   if (!validateSelection()) return;
   haptic(runs >= 4 ? 50 : 20);
-  const payload = {
+
+  // Optimistic UI update — instant feedback
+  var isLegal = true;
+  var newRuns = currentInnings.total_runs + runs;
+  var newBalls = currentInnings.total_balls + 1;
+  var newOvers = currentInnings.total_overs;
+  var overComplete = false;
+  if (newBalls >= 6) { newOvers++; newBalls = 0; overComplete = true; }
+  updateHeroInstant(newRuns, currentInnings.total_wickets, newOvers, newBalls);
+  addRecentBall(runs, 'none', false);
+
+  var payload = {
     batter_id: striker,
     bowler_id: currentBowler,
     non_striker_id: nonStriker,
@@ -352,22 +363,32 @@ async function scoreBall(runs) {
     wicket_type: 'none',
     is_correction: pendingCorrection
   };
-  const ball = await api(`/scoring/innings/${currentInnings.id}/ball`, 'POST', payload);
+  var ball = await api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload);
   if (ball && !ball.detail) {
     pendingCorrection = false;
-    addRecentBall(runs, 'none', false);
-    // Rotate strike on odd runs
+    currentInnings.total_runs = newRuns;
+    currentInnings.total_overs = newOvers;
+    currentInnings.total_balls = newBalls;
     if (runs % 2 === 1) swapStrike();
-    await refreshScore();
+    if (overComplete) { swapStrike(); promptBowlerChange(); }
+    // Light background sync (non-blocking)
+    bgSync();
   } else {
-    toast(ball?.detail || 'Error recording ball', 'error');
+    toast(ball && ball.detail ? ball.detail : 'Error recording ball', 'error');
+    bgSync(); // Sync to fix UI
   }
 }
 
 async function scoreExtra(type, extraRuns) {
   if (!validateSelection()) return;
   haptic(20);
-  const payload = {
+
+  // Optimistic update — extras don't count as legal balls
+  var newRuns = currentInnings.total_runs + extraRuns;
+  updateHeroInstant(newRuns, currentInnings.total_wickets, currentInnings.total_overs, currentInnings.total_balls);
+  addRecentBall(0, type, false, extraRuns);
+
+  var payload = {
     batter_id: striker,
     bowler_id: currentBowler,
     non_striker_id: nonStriker,
@@ -378,13 +399,75 @@ async function scoreExtra(type, extraRuns) {
     wicket_type: 'none',
     is_correction: pendingCorrection
   };
-  const ball = await api(`/scoring/innings/${currentInnings.id}/ball`, 'POST', payload);
+  var ball = await api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload);
   if (ball && !ball.detail) {
     pendingCorrection = false;
-    addRecentBall(0, type, false, extraRuns);
-    await refreshScore();
+    currentInnings.total_runs = newRuns;
+    currentInnings.extras = (currentInnings.extras || 0) + extraRuns;
+    bgSync();
   } else {
-    toast(ball?.detail || 'Error', 'error');
+    toast(ball && ball.detail ? ball.detail : 'Error', 'error');
+    bgSync();
+  }
+}
+
+function updateHeroInstant(runs, wickets, overs, balls) {
+  var heroScore = el('heroScore');
+  if (heroScore) {
+    heroScore.innerHTML = runs + '/' + wickets + ' <span style="font-size:16px;opacity:0.7">(' + overs + '.' + balls + ' ov)</span>';
+  }
+  var totalB = overs * 6 + balls;
+  var crr = totalB > 0 ? ((runs / totalB) * 6).toFixed(2) : '0.00';
+  var heroRR = el('heroRR');
+  if (heroRR) heroRR.textContent = 'CRR: ' + crr;
+}
+
+// Lightweight background sync — fetches only live score, not full match
+var bgSyncTimer = null;
+function bgSync() {
+  if (bgSyncTimer) clearTimeout(bgSyncTimer);
+  bgSyncTimer = setTimeout(async function() {
+    try {
+      var live = await api('/scoring/match/' + MATCH_ID + '/live');
+      if (live && !live.detail) {
+        currentInnings.total_runs = live.total_runs;
+        currentInnings.total_wickets = live.total_wickets;
+        var parts = live.overs.split('.');
+        currentInnings.total_overs = parseInt(parts[0]);
+        currentInnings.total_balls = parseInt(parts[1] || '0');
+        updateHeroInstant(live.total_runs, live.total_wickets, currentInnings.total_overs, currentInnings.total_balls);
+        // Check if innings completed
+        if (live.status === 'completed' || live.status === 'innings_break') {
+          await fullSync();
+        }
+      }
+    } catch(e) {}
+  }, 500);
+}
+
+// Full sync — only when innings ends or major state change
+async function fullSync() {
+  matchData = await api('/matches/' + MATCH_ID);
+  var prevInnId = currentInnings.id;
+  currentInnings = matchData.innings.find(function(i) { return i.id === prevInnId; });
+  if (!currentInnings || currentInnings.is_completed) {
+    toast('Innings completed!', 'info');
+    var nextInn = matchData.innings.find(function(i) { return !i.is_completed; });
+    if (nextInn) {
+      currentInnings = nextInn;
+      var battingTeam = teamsMap[currentInnings.batting_team_id];
+      var bowlingTeam = teamsMap[currentInnings.bowling_team_id];
+      battingPlayers = battingTeam ? battingTeam.players : [];
+      bowlingPlayers = bowlingTeam ? bowlingTeam.players : [];
+      striker = null; nonStriker = null; currentBowler = null;
+      dismissedBatters = new Set();
+      recentBalls = [];
+      localStorage.removeItem('boxcric_scoring_' + MATCH_ID + '_' + currentInnings.id);
+      renderScoringUI();
+    } else {
+      var backUrl = (window.location.pathname.indexOf('/app/')===0?'/app/match/':'/admin/match/') + MATCH_ID;
+      setTimeout(function() { window.location.href = backUrl; }, 1500);
+    }
   }
 }
 
@@ -455,6 +538,11 @@ async function confirmWicket() {
     addRecentBall(runsOnBall, 'none', true);
     toast('WICKET! ☝️', 'error');
 
+    // Optimistic wicket update
+    currentInnings.total_wickets++;
+    currentInnings.total_runs += runsOnBall;
+    updateHeroInstant(currentInnings.total_runs, currentInnings.total_wickets, currentInnings.total_overs, currentInnings.total_balls);
+
     // Check if last man standing situation
     dismissedBatters.add(dismissedId);
     var availableBatters = battingPlayers.filter(function(p) {
@@ -472,16 +560,16 @@ async function confirmWicket() {
         }
         saveSelections();
         toast('Last man batting! Innings continues.', 'info');
-        await refreshScore();
+        bgSync();
       });
       return;
     }
 
     // Normal — prompt for new batter
     promptNewBatter(dismissedId);
-    await refreshScore();
+    bgSync();
   } else {
-    toast(ball?.detail || 'Error', 'error');
+    toast(ball && ball.detail ? ball.detail : 'Error', 'error');
   }
 }
 
@@ -563,53 +651,8 @@ function confirmNewBowler() {
   toast('New bowler set!', 'success');
 }
 
-async function refreshScore() {
-  matchData = await api(`/matches/${MATCH_ID}`);
-  var prevInnId = currentInnings.id;
-  currentInnings = matchData.innings.find(i => i.id === prevInnId);
-
-  if (!currentInnings || currentInnings.is_completed) {
-    toast('Innings completed!', 'info');
-    var nextInn = matchData.innings.find(function(i) { return !i.is_completed; });
-    if (nextInn) {
-      currentInnings = nextInn;
-      var battingTeam = teamsMap[currentInnings.batting_team_id];
-      var bowlingTeam = teamsMap[currentInnings.bowling_team_id];
-      battingPlayers = battingTeam ? battingTeam.players : [];
-      bowlingPlayers = bowlingTeam ? bowlingTeam.players : [];
-      striker = null; nonStriker = null; currentBowler = null;
-      dismissedBatters = new Set();
-      recentBalls = [];
-      localStorage.removeItem('boxcric_scoring_' + MATCH_ID + '_' + currentInnings.id);
-      renderScoringUI();
-      return;
-    } else {
-      var backUrl = (window.location.pathname.indexOf('/app/')===0?'/app/match/':'/admin/match/') + MATCH_ID;
-      setTimeout(function() { window.location.href = backUrl; }, 1500);
-      return;
-    }
-  }
-
-  // Update hero score
-  var totalBalls = currentInnings.total_overs * 6 + currentInnings.total_balls;
-  var crr = totalBalls > 0 ? ((currentInnings.total_runs / totalBalls) * 6).toFixed(2) : '0.00';
-
-  var heroScore = el('heroScore');
-  if (heroScore) {
-    heroScore.innerHTML = currentInnings.total_runs + '/' + currentInnings.total_wickets + ' <span style="font-size:16px;opacity:0.7">(' + currentInnings.total_overs + '.' + currentInnings.total_balls + ' ov)</span>';
-  }
-  var heroRR = el('heroRR');
-  if (heroRR) heroRR.textContent = 'CRR: ' + crr;
-
-  // Update panel title
-  updatePanelTitle();
-
-  // Check end of over => swap strike + ask for bowler change
-  if (currentInnings.total_balls === 0 && totalBalls > 0) {
-    swapStrike();
-    promptBowlerChange();
-  }
-}
+// refreshScore kept as alias for undo
+async function refreshScore() { await fullSync(); }
 
 async function switchInnings() {
   confirmAction('Switch to next innings?', async function() {
