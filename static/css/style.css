@@ -12,8 +12,8 @@
   --bg: #f0f2f5;
   --card-bg: #ffffff;
   --text: #1a1a2e;
-  --text-light: #6c757d;
-  --text-muted: #9ca3af;
+  --text-light: #4b5563;
+  --text-muted: #6b7280;
   --border: #e5e7eb;
   --shadow: 0 2px 8px rgba(0,0,0,0.08);
   --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
@@ -365,6 +365,95 @@
 
 [data-theme="dark"] [style*="background:#fde8d0"] {
   background: #3d2a10 !important;
+}
+
+/* ===== DARK MODE: Additional text/color overrides ===== */
+
+/* Hardcoded dark text colors → light text in dark mode */
+[data-theme="dark"] [style*="color:#333"],
+[data-theme="dark"] [style*="color: #333"],
+[data-theme="dark"] [style*="color:#555"],
+[data-theme="dark"] [style*="color: #555"],
+[data-theme="dark"] [style*="color:#666"],
+[data-theme="dark"] [style*="color: #666"],
+[data-theme="dark"] [style*="color:#444"],
+[data-theme="dark"] [style*="color: #444"] {
+  color: #c8d0d8 !important;
+}
+
+/* Disabled option text */
+[data-theme="dark"] option:disabled,
+[data-theme="dark"] [style*="color:#999"] {
+  color: #556370 !important;
+}
+
+/* Light backgrounds used as cards/sections → dark bg */
+[data-theme="dark"] [style*="background:#f0fdf4"],
+[data-theme="dark"] [style*="background: #f0fdf4"] {
+  background: #0d2818 !important;
+}
+
+[data-theme="dark"] [style*="background:#f8fafc"],
+[data-theme="dark"] [style*="background: #f8fafc"],
+[data-theme="dark"] [style*="background:#f9fafb"] {
+  background: #1a2332 !important;
+}
+
+[data-theme="dark"] [style*="background:linear-gradient(135deg,var(--primary-dark),var(--primary))"] {
+  background: linear-gradient(135deg, #0a1a10, #122b1c) !important;
+}
+
+/* Border overrides for green/colored borders */
+[data-theme="dark"] [style*="border:2px solid #1a472a"],
+[data-theme="dark"] [style*="border: 2px solid #1a472a"] {
+  border-color: #2d6a4f !important;
+}
+
+/* Dark mode badges — use deeper colors with lighter text */
+[data-theme="dark"] .badge-completed { background: #065f46; color: #a7f3d0; }
+[data-theme="dark"] .badge-scheduled { background: #92400e; color: #fef3c7; }
+[data-theme="dark"] .badge-toss { background: #1e40af; color: #dbeafe; }
+[data-theme="dark"] .badge-innings-break { background: #5b21b6; color: #ede9fe; }
+
+/* Scorecard extras row */
+[data-theme="dark"] .extras-row td,
+[data-theme="dark"] tr.extras-row td {
+  color: var(--text-light) !important;
+}
+
+/* Toast notifications */
+[data-theme="dark"] .toast {
+  color: #fff !important;
+}
+
+/* Match card result text */
+[data-theme="dark"] .match-card .match-result {
+  color: var(--text-light);
+}
+
+/* OTP banner / login card text */
+[data-theme="dark"] #otpBanner {
+  background: #0d2818 !important;
+}
+
+[data-theme="dark"] #panelOtp .text-sm,
+[data-theme="dark"] #panelRegister .text-sm,
+[data-theme="dark"] #panelProfile .text-sm {
+  color: var(--text-light) !important;
+}
+
+/* Win probability bar text */
+[data-theme="dark"] #winProbWidget .text-sm {
+  color: var(--text-light) !important;
+}
+
+/* Toss overlay modal */
+[data-theme="dark"] #tossOverlay > div {
+  background: var(--card-bg) !important;
+  color: var(--text) !important;
+}
+[data-theme="dark"] #tossOverlay h3 {
+  color: var(--text) !important;
 }
 
 /* Inline border overrides */
