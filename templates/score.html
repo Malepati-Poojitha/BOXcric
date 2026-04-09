@@ -119,7 +119,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   matchData = await api(`/matches/${MATCH_ID}`);
 
   if (!matchData || matchData.status !== 'live') {
-    el('scoringApp').innerHTML = emptyState('⚠️', 'Match is not live', '<a href="/admin/match/' + MATCH_ID + '" class="btn btn-primary mt-2">Go to Match</a>');
+    var backUrl = (window.location.pathname.indexOf('/app/') === 0) ? '/app/match/' + MATCH_ID : '/admin/match/' + MATCH_ID;
+    el('scoringApp').innerHTML = emptyState('⚠️', 'Match is not live', '<a href="' + backUrl + '" class="btn btn-primary mt-2">Go to Match</a>');
     return;
   }
 
@@ -130,7 +131,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const inn2 = matchData.innings.find(i => i.innings_number === 2);
     if (inn2 && !inn2.is_completed) currentInnings = inn2;
     else {
-      el('scoringApp').innerHTML = emptyState('✅', 'Both innings complete', '<a href="/admin/match/' + MATCH_ID + '" class="btn btn-primary mt-2">View Result</a>');
+      var backUrl2 = (window.location.pathname.indexOf('/app/') === 0) ? '/app/match/' + MATCH_ID : '/admin/match/' + MATCH_ID;
+      el('scoringApp').innerHTML = emptyState('✅', 'Both innings complete', '<a href="' + backUrl2 + '" class="btn btn-primary mt-2">View Result</a>');
       return;
     }
   }
@@ -232,7 +234,7 @@ function renderScoringUI() {
 
       <!-- Scorecard preview -->
       <div class="mt-4">
-        <a href="/admin/match/${MATCH_ID}" class="btn btn-outline btn-sm btn-block">📊 View Full Scorecard</a>
+        <a href="javascript:void(0)" onclick="window.location.href=(window.location.pathname.indexOf('/app/')===0?'/app/match/':'/admin/match/')+MATCH_ID" class="btn btn-outline btn-sm btn-block">📊 View Full Scorecard</a>
       </div>
 
       <div class="mt-2">
@@ -548,7 +550,7 @@ async function refreshScore() {
       renderScoringUI();
       return;
     } else {
-      setTimeout(() => { window.location.href = `/admin/match/${MATCH_ID}`; }, 1500);
+      setTimeout(() => { window.location.href = (window.location.pathname.indexOf('/app/')===0?'/app/match/':'/admin/match/') + MATCH_ID; }, 1500);
       return;
     }
   }
@@ -596,7 +598,7 @@ async function endMatchFromScore() {
   confirmAction('End this match and calculate result?', async function() {
     await api(`/matches/${MATCH_ID}/end`, 'POST');
     toast('Match ended!', 'success');
-    setTimeout(() => { window.location.href = `/admin/match/${MATCH_ID}`; }, 1000);
+    setTimeout(() => { window.location.href = (window.location.pathname.indexOf('/app/')===0?'/app/match/':'/admin/match/') + MATCH_ID; }, 1000);
   });
 }
 

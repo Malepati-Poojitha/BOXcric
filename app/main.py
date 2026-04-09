@@ -297,6 +297,18 @@ def user_match_detail(request: Request, match_id: int, db: Session = Depends(get
     return templates.TemplateResponse(request, "user/match_detail.html", ctx)
 
 
+@app.get("/app/score/{match_id}", include_in_schema=False)
+def user_score(request: Request, match_id: int, db: Session = Depends(get_db)):
+    """Scoring page for hosts/co-hosts via user app."""
+    ctx = _user_ctx(request, db, "matches", match_id=match_id)
+    if hasattr(ctx, 'status_code'): return ctx
+    user = ctx.get("user")
+    if not user:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/app/login")
+    return templates.TemplateResponse(request, "score.html", {"active": "matches", "match_id": match_id, "user_mode": True})
+
+
 @app.get("/app/players", include_in_schema=False)
 def user_players(request: Request, db: Session = Depends(get_db)):
     ctx = _user_ctx(request, db, "players")

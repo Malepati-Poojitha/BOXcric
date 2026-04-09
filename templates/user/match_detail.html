@@ -52,13 +52,25 @@ function renderMatchDetail() {
 
   let html = '';
 
+  // Check if current user is host/cohost of either team
+  var canScore = false;
+  {% if user %}
+  var userId = {{ user.id }};
+  if (t1.host_id === userId || t1.cohost_id === userId || t2.host_id === userId || t2.cohost_id === userId) {
+    canScore = true;
+  }
+  {% endif %}
+
   // Title bar
   html += `<div class="flex justify-between items-center mb-4">
     <div>
       <h1 class="page-title" style="margin-bottom:2px">${m.title || t1.name + ' vs ' + t2.name}</h1>
       <div class="text-sm text-muted">${m.venue || ''} ${m.date ? '• ' + new Date(m.date).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : ''} • ${m.overs} overs</div>
     </div>
-    ${statusBadge(m.status)}
+    <div style="display:flex;gap:8px;align-items:center">
+      ${(m.status === 'live' && canScore) ? '<a href="/app/score/' + MATCH_ID + '" class="btn btn-accent btn-sm">⚡ Score Match</a>' : ''}
+      ${statusBadge(m.status)}
+    </div>
   </div>`;
 
   // Live hero
