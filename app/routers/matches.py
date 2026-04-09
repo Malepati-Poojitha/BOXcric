@@ -147,6 +147,26 @@ def end_match(match_id: int, request: Request, db: Session = Depends(get_db)):
     return match
 
 
+@router.post("/{match_id}/end-innings/{innings_id}")
+def end_innings(match_id: int, innings_id: int, db: Session = Depends(get_db)):
+    """Manually end/complete an innings (declaration or manual switch)."""
+    match = db.query(Match).filter(Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    innings = db.query(Innings).filter(Innings.id == innings_id, Innings.match_id == match_id).first()
+    if not innings:
+        raise HTTPException(status_code=404, detail="Innings not found")
+    if innings.is_completed:
+        raise HTTPException(status_code=400, detail="Innings already completed")
+    innings.is_completed = True
+    # Set match to innings break if 1st innings, keep live for 2nd
+    if innings.innings_number == 1:
+        match.status = MatchStatus.INNINGS_BREAK
+    db.commit()
+    db.refresh(match)
+    return match
+
+
 @router.post("/{match_id}/super-over", response_model=MatchOut)
 def start_super_over(match_id: int, request: Request, db: Session = Depends(get_db)):
     """Start a super over for a tied match."""
