@@ -99,7 +99,7 @@ def start_match(match_id: int, request: Request, db: Session = Depends(get_db)):
     match = db.query(Match).filter(Match.id == match_id).first()
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
-    if match.status != MatchStatus.TOSS:
+    if match.status not in (MatchStatus.TOSS, MatchStatus.INNINGS_BREAK):
         raise HTTPException(status_code=400, detail="Complete toss before starting")
     match.status = MatchStatus.LIVE
     db.commit()
@@ -159,8 +159,16 @@ def end_innings(match_id: int, innings_id: int, db: Session = Depends(get_db)):
     if innings.is_completed:
         raise HTTPException(status_code=400, detail="Innings already completed")
     innings.is_completed = True
-    # Set match to innings break if 1st innings, keep live for 2nd
-    if innings.innings_number == 1:
+    # Check if there's a next incomplete innings
+    next_inn = db.query(Innings).filter(
+        Innings.match_id == match_id,
+        Innings.id != innings_id,
+        Innings.is_completed == False
+    ).first()
+    if next_inn:
+        # Set match to LIVE so scoring can continue for next innings
+        match.status = MatchStatus.LIVE
+    else:
         match.status = MatchStatus.INNINGS_BREAK
     db.commit()
     db.refresh(match)

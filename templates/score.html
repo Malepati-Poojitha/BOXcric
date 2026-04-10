@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   allPlayers = players;
   matchData = await api(`/matches/${MATCH_ID}`);
 
-  if (!matchData || matchData.status !== 'live') {
+  if (!matchData || (matchData.status !== 'live' && matchData.status !== 'innings_break')) {
     var backUrl = (window.location.pathname.indexOf('/app/') === 0) ? '/app/match/' + MATCH_ID : '/admin/match/' + MATCH_ID;
     el('scoringApp').innerHTML = emptyState('⚠️', 'Match is not live', '<a href="' + backUrl + '" class="btn btn-primary mt-2">Go to Match</a>');
     return;
@@ -660,6 +660,8 @@ async function switchInnings() {
     if (currentInnings && !currentInnings.is_completed) {
       await api('/matches/' + MATCH_ID + '/end-innings/' + currentInnings.id, 'POST');
     }
+    // Ensure match is LIVE for next innings
+    await api('/matches/' + MATCH_ID + '/start', 'POST').catch(function(){});
     // Reload match data
     matchData = await api('/matches/' + MATCH_ID);
     var nextInn = matchData.innings.find(function(i) { return !i.is_completed; });
