@@ -115,7 +115,6 @@ async def _keep_alive():
             req = urllib.request.Request(health_url, method="GET")
             with urllib.request.urlopen(req, timeout=10) as resp:
                 resp.read()
-            print("[KEEP-ALIVE] Ping OK")
         except Exception as e:
             print(f"[KEEP-ALIVE] Ping failed: {e}")
 
@@ -134,21 +133,6 @@ async def shutdown_keep_alive():
 @app.api_route("/health", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "ok"}
-
-
-@app.get("/debug/db")
-def debug_db():
-    """Temporary debug endpoint to check DB connectivity on Render."""
-    from sqlalchemy import text
-    db = SessionLocal()
-    try:
-        result = db.execute(text("SELECT count(*) FROM players"))
-        count = result.fetchone()[0]
-        return {"status": "ok", "players_count": count}
-    except Exception as e:
-        return {"status": "error", "error": str(e), "type": type(e).__name__}
-    finally:
-        db.close()
 
 
 # Static files & templates

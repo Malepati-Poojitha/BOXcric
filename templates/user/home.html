@@ -51,9 +51,7 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-  const matches = await api('/matches/');
-  const players = await api('/players/');
-  const teams = await api('/teams/');
+  const [matches, players, teams] = await Promise.all([api('/matches/'), api('/players/'), api('/teams/')]);
 
   el('statMatches').textContent = matches.length;
   el('statPlayers').textContent = players.length;

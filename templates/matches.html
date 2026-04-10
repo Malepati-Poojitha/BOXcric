@@ -26,8 +26,7 @@ let allMatches = [];
 let allTeams = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  allTeams = await api('/teams/');
-  allMatches = await api('/matches/');
+  [allTeams, allMatches] = await Promise.all([api('/teams/'), api('/matches/')]);
   renderMatches('all');
 
   document.querySelectorAll('#matchTabs .tab').forEach(tab => {

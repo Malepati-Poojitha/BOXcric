@@ -325,7 +325,6 @@ def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     # If email not configured, include OTP in response so login still works (demo mode)
     if not email_sent:
         result["demo_otp"] = otp
-        print(f"[OTP] {otp_key}: {otp} (email not configured — demo mode)")
     return result
 
 

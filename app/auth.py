@@ -121,8 +121,7 @@ def send_otp_email(to_email: str, otp: str, user_name: str = "User") -> bool:
         except ImportError:
             ctx = ssl.create_default_context()
         with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
-            result = json.loads(resp.read().decode())
-            print(f"[EMAIL] Sent OTP to {to_email} via Brevo: {result}")
+            resp.read()
         return True
     except urllib.error.HTTPError as e:
         body = e.read().decode() if e.fp else ""

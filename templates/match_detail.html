@@ -15,13 +15,9 @@ let teamsMap = {};
 let liveWs = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const teams = await api('/teams/');
+  const [teams, match] = await Promise.all([api('/teams/'), api('/matches/' + MATCH_ID)]);
   teams.forEach(t => teamsMap[t.id] = t);
-  await loadMatch();
-});
-
-async function loadMatch() {
-  matchData = await api(`/matches/${MATCH_ID}`);
+  matchData = match;
   if (!matchData || matchData.detail) {
     el('matchDetail').innerHTML = emptyState('❌', 'Match not found', '');
     return;
@@ -43,7 +39,7 @@ function connectWs() {
   liveWs.onclose = () => { setTimeout(connectWs, 3000); };
 }
 
-function renderMatchDetail() {
+async function loadMatch() {\n  matchData = await api('/matches/' + MATCH_ID);\n  if (matchData && !matchData.detail) renderMatchDetail();\n}\n\nfunction renderMatchDetail() {
   const m = matchData;
   const t1 = teamsMap[m.team1_id] || {name: 'Team 1', short_name: 'T1'};
   const t2 = teamsMap[m.team2_id] || {name: 'Team 2', short_name: 'T2'};

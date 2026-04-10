@@ -228,7 +228,7 @@ if ('serviceWorker' in navigator) {
       keys.forEach((key) => { if (key !== 'boxcric-v3') caches.delete(key); });
     });
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then((reg) => { reg.update(); console.log('SW registered:', reg.scope); })
+      .then((reg) => { reg.update(); })
       .catch((err) => console.log('SW registration failed:', err));
   });
 }
