@@ -13,8 +13,11 @@ from app.auth import get_current_user_from_cookie
 router = APIRouter(prefix="/scoring", tags=["Live Scoring"])
 
 
-def _check_scorer_permission(db: Session, match_id: int, user_id: int):
-    """Check if user is host or co-host of either team in the match."""
+def _check_scorer_permission(db: Session, match_id: int, user):
+    """Check if user is admin, host, or co-host of either team in the match."""
+    # Admins can always score
+    if user and user.is_admin:
+        return
     match = db.query(Match).filter(Match.id == match_id).first()
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -29,18 +32,19 @@ def _check_scorer_permission(db: Session, match_id: int, user_id: int):
                 allowed_ids.add(t.cohost_id)
     if not allowed_ids:
         return  # No hosts set yet — allow anyone (backward compatible)
+    user_id = user.id if user else None
     if not user_id or user_id not in allowed_ids:
         raise HTTPException(status_code=403, detail="Only team hosts or co-hosts can score matches")
 
 
 @router.post("/innings/{innings_id}/ball", response_model=BallOut)
 def add_ball(innings_id: int, data: BallInput, request: Request, db: Session = Depends(get_db)):
-    """Record a ball delivery for live scoring. Only host/co-host can score."""
+    """Record a ball delivery for live scoring. Only host/co-host/admin can score."""
     innings = db.query(Innings).filter(Innings.id == innings_id).first()
     if not innings:
         raise HTTPException(status_code=404, detail="Innings not found")
     user = get_current_user_from_cookie(request, db)
-    _check_scorer_permission(db, innings.match_id, user.id if user else None)
+    _check_scorer_permission(db, innings.match_id, user)
     try:
         ball = record_ball(db, innings_id, data)
         return ball
