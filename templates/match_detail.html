@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (matchData.status === 'live' || matchData.status === 'innings_break') {
     connectWs();
   }
-}
+});
 
 function connectWs() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -39,7 +39,12 @@ function connectWs() {
   liveWs.onclose = () => { setTimeout(connectWs, 3000); };
 }
 
-async function loadMatch() {\n  matchData = await api('/matches/' + MATCH_ID);\n  if (matchData && !matchData.detail) renderMatchDetail();\n}\n\nfunction renderMatchDetail() {
+async function loadMatch() {
+  matchData = await api('/matches/' + MATCH_ID);
+  if (matchData && !matchData.detail) renderMatchDetail();
+}
+
+function renderMatchDetail() {
   const m = matchData;
   const t1 = teamsMap[m.team1_id] || {name: 'Team 1', short_name: 'T1'};
   const t2 = teamsMap[m.team2_id] || {name: 'Team 2', short_name: 'T2'};
