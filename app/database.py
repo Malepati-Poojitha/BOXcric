@@ -57,14 +57,33 @@ if _is_libsql:
     class _LibsqlConnectionWrapper:
         """Wraps libsql Connection to be fully compatible with sqlite3.Connection for SQLAlchemy."""
         def __init__(self):
-            self._conn = libsql.connect(
-                "turso_replica.db", sync_url=_turso_url, auth_token=_auth_token
-            )
+            self._connect()
+
+        def _connect(self):
+            """Create or recreate the libsql connection. Deletes corrupt replica if needed."""
+            import os
             try:
+                self._conn = libsql.connect(
+                    "turso_replica.db", sync_url=_turso_url, auth_token=_auth_token
+                )
                 self._conn.sync()
                 print("[TURSO] Initial sync OK")
             except Exception as e:
-                print(f"[TURSO] Initial sync warning: {e} — will retry on first query")
+                print(f"[TURSO] Sync failed: {e} — deleting replica and retrying")
+                # Delete corrupt replica and retry
+                for f in ["turso_replica.db", "turso_replica.db-wal", "turso_replica.db-shm"]:
+                    try:
+                        os.remove(f)
+                    except OSError:
+                        pass
+                self._conn = libsql.connect(
+                    "turso_replica.db", sync_url=_turso_url, auth_token=_auth_token
+                )
+                try:
+                    self._conn.sync()
+                    print("[TURSO] Retry sync OK")
+                except Exception as e2:
+                    print(f"[TURSO] Retry sync warning: {e2}")
 
         def cursor(self):
             return _LibsqlCursorWrapper(self._conn.cursor())
