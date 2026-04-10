@@ -338,20 +338,25 @@ function validateSelection() {
   return true;
 }
 
-async function scoreBall(runs) {
+function scoreBall(runs) {
   if (!validateSelection()) return;
   haptic(runs >= 4 ? 50 : 20);
 
-  // Optimistic UI update — instant feedback
-  var isLegal = true;
+  // Instant UI update
   var newRuns = currentInnings.total_runs + runs;
   var newBalls = currentInnings.total_balls + 1;
   var newOvers = currentInnings.total_overs;
   var overComplete = false;
   if (newBalls >= 6) { newOvers++; newBalls = 0; overComplete = true; }
+  currentInnings.total_runs = newRuns;
+  currentInnings.total_overs = newOvers;
+  currentInnings.total_balls = newBalls;
   updateHeroInstant(newRuns, currentInnings.total_wickets, newOvers, newBalls);
   addRecentBall(runs, 'none', false);
+  if (runs % 2 === 1) swapStrike();
+  if (overComplete) { swapStrike(); promptBowlerChange(); }
 
+  // Fire-and-forget API call — don't block UI
   var payload = {
     batter_id: striker,
     bowler_id: currentBowler,
@@ -363,31 +368,26 @@ async function scoreBall(runs) {
     wicket_type: 'none',
     is_correction: pendingCorrection
   };
-  var ball = await api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload);
-  if (ball && !ball.detail) {
-    pendingCorrection = false;
-    currentInnings.total_runs = newRuns;
-    currentInnings.total_overs = newOvers;
-    currentInnings.total_balls = newBalls;
-    if (runs % 2 === 1) swapStrike();
-    if (overComplete) { swapStrike(); promptBowlerChange(); }
-    // Light background sync (non-blocking)
+  pendingCorrection = false;
+  api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload).then(function(ball) {
+    if (!ball || ball.detail) {
+      toast(ball && ball.detail ? ball.detail : 'Error recording ball', 'error');
+    }
     bgSync();
-  } else {
-    toast(ball && ball.detail ? ball.detail : 'Error recording ball', 'error');
-    bgSync(); // Sync to fix UI
-  }
+  });
 }
 
-async function scoreExtra(type, extraRuns) {
+function scoreExtra(type, extraRuns) {
   if (!validateSelection()) return;
   haptic(20);
 
-  // Optimistic update — extras don't count as legal balls
-  var newRuns = currentInnings.total_runs + extraRuns;
-  updateHeroInstant(newRuns, currentInnings.total_wickets, currentInnings.total_overs, currentInnings.total_balls);
+  // Instant update
+  currentInnings.total_runs += extraRuns;
+  currentInnings.extras = (currentInnings.extras || 0) + extraRuns;
+  updateHeroInstant(currentInnings.total_runs, currentInnings.total_wickets, currentInnings.total_overs, currentInnings.total_balls);
   addRecentBall(0, type, false, extraRuns);
 
+  // Fire-and-forget
   var payload = {
     batter_id: striker,
     bowler_id: currentBowler,
@@ -399,16 +399,13 @@ async function scoreExtra(type, extraRuns) {
     wicket_type: 'none',
     is_correction: pendingCorrection
   };
-  var ball = await api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload);
-  if (ball && !ball.detail) {
-    pendingCorrection = false;
-    currentInnings.total_runs = newRuns;
-    currentInnings.extras = (currentInnings.extras || 0) + extraRuns;
+  pendingCorrection = false;
+  api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload).then(function(ball) {
+    if (!ball || ball.detail) {
+      toast(ball && ball.detail ? ball.detail : 'Error', 'error');
+    }
     bgSync();
-  } else {
-    toast(ball && ball.detail ? ball.detail : 'Error', 'error');
-    bgSync();
-  }
+  });
 }
 
 function updateHeroInstant(runs, wickets, overs, balls) {
@@ -422,27 +419,28 @@ function updateHeroInstant(runs, wickets, overs, balls) {
   if (heroRR) heroRR.textContent = 'CRR: ' + crr;
 }
 
-// Lightweight background sync — fetches only live score, not full match
+// Lightweight background sync — debounced, non-blocking
 var bgSyncTimer = null;
+var bgSyncRunning = false;
 function bgSync() {
   if (bgSyncTimer) clearTimeout(bgSyncTimer);
-  bgSyncTimer = setTimeout(async function() {
-    try {
-      var live = await api('/scoring/match/' + MATCH_ID + '/live');
-      if (live && !live.detail) {
-        currentInnings.total_runs = live.total_runs;
-        currentInnings.total_wickets = live.total_wickets;
-        var parts = live.overs.split('.');
-        currentInnings.total_overs = parseInt(parts[0]);
-        currentInnings.total_balls = parseInt(parts[1] || '0');
-        updateHeroInstant(live.total_runs, live.total_wickets, currentInnings.total_overs, currentInnings.total_balls);
-        // Check if innings completed
-        if (live.status === 'completed' || live.status === 'innings_break') {
-          await fullSync();
-        }
+  bgSyncTimer = setTimeout(function() {
+    if (bgSyncRunning) return;
+    bgSyncRunning = true;
+    api('/scoring/match/' + MATCH_ID + '/live').then(function(live) {
+      bgSyncRunning = false;
+      if (!live || live.detail) return;
+      currentInnings.total_runs = live.total_runs;
+      currentInnings.total_wickets = live.total_wickets;
+      var parts = live.overs.split('.');
+      currentInnings.total_overs = parseInt(parts[0]);
+      currentInnings.total_balls = parseInt(parts[1] || '0');
+      updateHeroInstant(live.total_runs, live.total_wickets, currentInnings.total_overs, currentInnings.total_balls);
+      if (live.status === 'completed' || live.status === 'innings_break') {
+        fullSync();
       }
-    } catch(e) {}
-  }, 500);
+    }).catch(function() { bgSyncRunning = false; });
+  }, 800);
 }
 
 // Full sync — only when innings ends or major state change
