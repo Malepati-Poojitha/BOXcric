@@ -81,31 +81,31 @@ function renderMatchDetail() {
 
   // Live hero
   if (m.status === 'live' || m.status === 'innings_break') {
-    html += `<div class="live-hero" id="liveHero">
-      <div class="loading-center" style="padding:20px"><div class="spinner" style="border-top-color:#fff"></div></div>
+    html += `<div class="live-hero" id="liveHero" style="padding:10px 14px">
+      <div class="loading-center" style="padding:12px"><div class="spinner" style="border-top-color:#fff"></div></div>
     </div>`;
-    html += `<div id="winProbWidget" class="card mt-4" style="overflow:hidden"></div>`;
   }
 
-  // Score summary
+  // Compact Win Probability (always visible for live matches)
+  if (m.status === 'live' || m.status === 'innings_break') {
+    html += `<div id="winProbWidget" style="margin-top:6px"></div>`;
+  }
+
+  // Compact score summary (always visible)
   if (inn1 || inn2) {
-    html += `<div class="grid-2 mt-4">`;
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">`;
     if (inn1) {
-      const batTeam = teamsMap[inn1.batting_team_id] || {name:'Team'};
-      html += `<div class="card">
-        <div class="card-header"><span>${batTeam.name} — 1st Innings</span></div>
-        <div class="card-body">
-          <div class="innings-score">${inn1.total_runs}/${inn1.total_wickets} <span class="overs">(${inn1.total_overs}.${inn1.total_balls} ov)</span></div>
-        </div>
+      const bt1 = teamsMap[inn1.batting_team_id] || {name:'Team'};
+      html += `<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+        <div style="font-size:11px;color:var(--text-light)">${bt1.name} — 1st</div>
+        <div style="font-size:20px;font-weight:800">${inn1.total_runs}/${inn1.total_wickets} <span style="font-size:12px;color:var(--text-light)">(${inn1.total_overs}.${inn1.total_balls})</span></div>
       </div>`;
     }
     if (inn2) {
-      const batTeam = teamsMap[inn2.batting_team_id] || {name:'Team'};
-      html += `<div class="card">
-        <div class="card-header"><span>${batTeam.name} — 2nd Innings</span></div>
-        <div class="card-body">
-          <div class="innings-score">${inn2.total_runs}/${inn2.total_wickets} <span class="overs">(${inn2.total_overs}.${inn2.total_balls} ov)</span></div>
-        </div>
+      const bt2 = teamsMap[inn2.batting_team_id] || {name:'Team'};
+      html += `<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+        <div style="font-size:11px;color:var(--text-light)">${bt2.name} — 2nd</div>
+        <div style="font-size:20px;font-weight:800">${inn2.total_runs}/${inn2.total_wickets} <span style="font-size:12px;color:var(--text-light)">(${inn2.total_overs}.${inn2.total_balls})</span></div>
       </div>`;
     }
     html += `</div>`;
@@ -113,52 +113,78 @@ function renderMatchDetail() {
 
   // Result
   if (m.result_summary) {
-    html += `<div class="card mt-4"><div class="card-body text-center">
-      <div class="text-lg fw-bold" style="color:var(--win-green)">🏆 ${m.result_summary}</div>
-      ${(m.result_summary === 'Match Tied' && canScore) ? '<button class="btn btn-accent btn-sm mt-2" onclick="startSuperOver()">⚡ Start Super Over</button>' : ''}
-    </div></div>`;
+    html += `<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:6px;text-align:center">
+      <div style="font-size:14px;font-weight:700;color:var(--win-green)">🏆 ${m.result_summary}</div>
+      ${(m.result_summary === 'Match Tied' && canScore) ? '<button class="btn btn-accent btn-sm mt-2" onclick="startSuperOver()">⚡ Super Over</button>' : ''}
+    </div>`;
   }
 
-  // Scorecard tabs
+  // ===== MAIN TABS: Scorecard | Commentary | Info =====
   if (inn1 || inn2) {
-    html += `<div class="mt-6"><h2 class="section-title">Scorecard</h2>
-      <div class="tabs" id="scorecardTabs">`;
-    if (inn1) html += `<button class="tab active" onclick="loadScorecard(${inn1.id}, this)">1st Innings</button>`;
-    if (inn2) html += `<button class="tab" onclick="loadScorecard(${inn2.id}, this)">2nd Innings</button>`;
-    html += `</div><div id="scorecardContent"><div class="loading-center"><div class="spinner"></div></div></div></div>`;
-  }
+    html += `<div style="margin-top:10px">
+      <div style="display:flex;border-bottom:2px solid var(--border)">
+        <button class="tab active" id="mainTab1" onclick="showMainTab('scorecard')" style="flex:1;padding:10px;font-size:13px;font-weight:700">📊 Scorecard</button>
+        <button class="tab" id="mainTab2" onclick="showMainTab('commentary')" style="flex:1;padding:10px;font-size:13px;font-weight:700">🎤 Commentary</button>
+        <button class="tab" id="mainTab3" onclick="showMainTab('info')" style="flex:1;padding:10px;font-size:13px;font-weight:700">📋 Info</button>
+      </div>
 
-  // Commentary section
-  if (inn1 || inn2) {
-    html += `<div class="mt-6"><h2 class="section-title">🎤️ Ball-by-Ball Commentary</h2>
-      <div class="tabs" id="commTabs">`;
-    if (inn1) html += `<button class="tab active" onclick="loadCommentary(1, this)">1st Innings</button>`;
-    if (inn2) html += `<button class="tab" onclick="loadCommentary(2, this)">2nd Innings</button>`;
-    html += `</div><div id="commContent"><div class="loading-center"><div class="spinner"></div></div></div></div>`;
-  }
+      <!-- SCORECARD TAB -->
+      <div id="mainPane_scorecard">
+        <div class="tabs" id="scorecardTabs" style="margin-top:8px">`;
+    if (inn1) html += `<button class="tab active" onclick="loadScorecard(${inn1.id}, this)">1st Inn</button>`;
+    if (inn2) html += `<button class="tab" onclick="loadScorecard(${inn2.id}, this)">2nd Inn</button>`;
+    html += `</div><div id="scorecardContent"><div class="loading-center"><div class="spinner"></div></div></div>
+      </div>
 
-  // Over Graph
-  if (inn1 || inn2) {
-    html += `<div class="mt-6"><h2 class="section-title">📊 Match Graph</h2>
+      <!-- COMMENTARY TAB -->
+      <div id="mainPane_commentary" style="display:none">
+        <div class="tabs" id="commTabs" style="margin-top:8px">`;
+    if (inn1) html += `<button class="tab active" onclick="loadCommentary(1, this)">1st Inn</button>`;
+    if (inn2) html += `<button class="tab" onclick="loadCommentary(2, this)">2nd Inn</button>`;
+    html += `</div><div id="commContent"><div class="loading-center"><div class="spinner"></div></div></div>
+      </div>
+
+      <!-- INFO TAB -->
+      <div id="mainPane_info" style="display:none">`;
+
+    // Toss info
+    if (m.toss_winner_id) {
+      const tossW = teamsMap[m.toss_winner_id] || {name:'?'};
+      html += `<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px">
+        <div style="font-size:12px;color:var(--text-light)"><strong>Toss:</strong> ${tossW.name} won and chose to ${m.toss_decision}</div>
+      </div>`;
+    }
+    html += `<div style="margin-top:8px"><h3 style="font-size:14px;font-weight:700;margin-bottom:6px">📊 Match Graph</h3>
       <div id="matchGraph"><div class="loading-center"><div class="spinner"></div></div></div></div>`;
-  }
-
-  // Toss info
-  if (m.toss_winner_id) {
-    const tossW = teamsMap[m.toss_winner_id] || {name:'?'};
-    html += `<div class="card mt-4"><div class="card-body text-sm text-muted">
-      <strong>Toss:</strong> ${tossW.name} won the toss and chose to ${m.toss_decision}
-    </div></div>`;
+    html += `</div>
+    </div>`;
   }
 
   el('matchDetail').innerHTML = html;
   if (inn1) loadScorecard(inn1.id, null);
-  if (inn1) loadCommentary(1, null);
-  if (inn1 || inn2) loadMatchGraph();
   if (m.status === 'live' || m.status === 'innings_break') {
     loadLiveScore();
     loadWinProbability();
     setInterval(loadWinProbability, 10000);
+  }
+}
+
+function showMainTab(tabName) {
+  ['scorecard','commentary','info'].forEach(function(t) {
+    var pane = el('mainPane_' + t);
+    if (pane) pane.style.display = (t === tabName) ? 'block' : 'none';
+  });
+  document.getElementById('mainTab1').classList.toggle('active', tabName === 'scorecard');
+  document.getElementById('mainTab2').classList.toggle('active', tabName === 'commentary');
+  document.getElementById('mainTab3').classList.toggle('active', tabName === 'info');
+  // Lazy load content
+  if (tabName === 'commentary') {
+    var cc = el('commContent');
+    if (cc && cc.querySelector('.spinner')) loadCommentary(1, null);
+  }
+  if (tabName === 'info') {
+    var mg = el('matchGraph');
+    if (mg && mg.querySelector('.spinner')) loadMatchGraph();
   }
 }
 
@@ -174,24 +200,19 @@ async function loadWinProbability() {
     var p1 = data.team1 || 50;
     var p2 = data.team2 || 50;
 
-    var h = '<div class="card-header"><span>📊 Win Probability</span></div>';
-    h += '<div class="card-body">';
-    h += '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:6px">';
+    var h = '<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px">';
+    h += '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:4px">';
     h += '<span style="color:var(--primary)">' + t1 + ' ' + p1 + '%</span>';
     h += '<span style="color:var(--accent)">' + t2 + ' ' + p2 + '%</span>';
     h += '</div>';
-    h += '<div style="height:12px;background:var(--accent);border-radius:6px;overflow:hidden">';
-    h += '<div style="height:100%;width:' + p1 + '%;background:var(--primary);border-radius:6px;transition:width 0.5s"></div>';
+    h += '<div style="height:8px;background:var(--accent);border-radius:4px;overflow:hidden">';
+    h += '<div style="height:100%;width:' + p1 + '%;background:var(--primary);border-radius:4px;transition:width 0.5s"></div>';
     h += '</div>';
     if (data.analysis) {
-      h += '<div class="text-sm text-muted mt-2" style="text-align:center">' + data.analysis + '</div>';
+      h += '<div style="font-size:10px;color:var(--text-light);text-align:center;margin-top:3px">' + data.analysis + '</div>';
     }
     if (data.factors && data.factors.length) {
-      h += '<div class="mt-2" style="border-top:1px solid var(--border);padding-top:8px">';
-      for (var i = 0; i < data.factors.length; i++) {
-        h += '<div class="text-sm" style="padding:3px 0;color:var(--text-light)">' + data.factors[i] + '</div>';
-      }
-      h += '</div>';
+      h += '<div style="font-size:9px;color:var(--text-light);margin-top:3px">' + data.factors.slice(0,2).join(' | ') + '</div>';
     }
     h += '</div>';
     widget.innerHTML = h;
