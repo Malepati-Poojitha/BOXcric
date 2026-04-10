@@ -397,7 +397,7 @@ async function loadMatchGraph() {
   var inn2Name = inn2 ? (teamsMap[inn2.batting_team_id] || {name:'Inn 2'}).name : '';
 
   var barW = Math.max(20, Math.floor(600 / maxOver) - 8);
-  var graphH = 200;
+  var graphH = 120;
   var maxY = Math.max(maxRuns + 10, 20);
 
   var h = '<div class="card"><div class="card-body">';
@@ -451,7 +451,7 @@ async function loadMatchGraph() {
   // Worm chart (cumulative runs)
   h += '<div style="font-size:12px;font-weight:600;color:var(--text-light);margin:16px 0 6px">Run Progression (Worm)</div>';
   var svgW = 600;
-  var svgH = 150;
+  var svgH = 100;
   h += '<div style="overflow-x:auto"><svg viewBox="0 0 ' + svgW + ' ' + svgH + '" style="width:100%;max-width:600px;height:auto">';
 
   // Grid lines
