@@ -72,6 +72,8 @@ function renderMatchDetail() {
       ${(m.status === 'toss' && canScore) ? '<button class="btn btn-primary btn-sm" onclick="startMatch()">\ud83c\udfcf Start Match</button>' : ''}
       ${(m.status === 'live' && canScore) ? '<a href="/app/score/' + MATCH_ID + '" class="btn btn-accent btn-sm">\u26a1 Score Match</a>' : ''}
       ${(m.status === 'live' && canScore) ? '<button class="btn btn-outline btn-sm" onclick="endMatch()">\ud83c\udfc1 End Match</button>' : ''}
+      ${(m.status === 'innings_break' && canScore) ? '<button class="btn btn-primary btn-sm" onclick="resumeMatch()">\u25b6\ufe0f Resume 2nd Innings</button>' : ''}
+      ${(m.status === 'innings_break' && canScore) ? '<a href="/app/score/' + MATCH_ID + '" class="btn btn-accent btn-sm">\u26a1 Score Match</a>' : ''}
       ${statusBadge(m.status)}
     </div>
   </div>`;
@@ -394,6 +396,18 @@ async function startMatch() {
     var res = await api('/matches/' + MATCH_ID + '/start', 'POST');
     if (res && res.id) {
       toast('Match started! 🏏', 'success');
+      await loadMatch();
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed', 'error');
+    }
+  });
+}
+
+async function resumeMatch() {
+  confirmAction('Resume match for 2nd innings?', async function() {
+    var res = await api('/matches/' + MATCH_ID + '/start', 'POST');
+    if (res && res.id) {
+      toast('Match resumed! 🏏', 'success');
       await loadMatch();
     } else {
       toast(res && res.detail ? res.detail : 'Failed', 'error');

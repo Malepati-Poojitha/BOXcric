@@ -64,6 +64,8 @@ function renderMatchDetail() {
       ${m.status === 'toss' ? `<button class="btn btn-primary btn-sm" onclick="startMatch()">Start Match</button>` : ''}
       ${m.status === 'live' ? `<a href="/admin/score/${MATCH_ID}" class="btn btn-accent btn-sm">⚡ Score Match</a>` : ''}
       ${m.status === 'live' ? `<button class="btn btn-outline btn-sm" onclick="endMatch()">End Match</button>` : ''}
+      ${m.status === 'innings_break' ? `<button class="btn btn-primary btn-sm" onclick="resumeMatch()">▶️ Resume 2nd Innings</button>` : ''}
+      ${m.status === 'innings_break' ? `<a href="/admin/score/${MATCH_ID}" class="btn btn-accent btn-sm">⚡ Score Match</a>` : ''}
     </div>
   </div>`;
 
@@ -556,6 +558,14 @@ async function startMatch() {
   confirmAction('Start this match?', async function() {
     await api(`/matches/${MATCH_ID}/start`, 'POST');
     toast('Match started! 🏏', 'success');
+    await loadMatch();
+  });
+}
+
+async function resumeMatch() {
+  confirmAction('Resume match for 2nd innings?', async function() {
+    await api('/matches/' + MATCH_ID + '/start', 'POST');
+    toast('Match resumed! 🏏', 'success');
     await loadMatch();
   });
 }
