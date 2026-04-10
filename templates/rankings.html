@@ -128,7 +128,7 @@ function renderPodium(top3, valueKey, label) {
     var height = isFirst ? '140px' : (idx === 1 ? '115px' : '95px');
     h += '<div style="text-align:center;width:' + (isFirst ? '120px' : '100px') + '">';
     h += '<div style="font-size:' + (isFirst ? '32px' : '24px') + '">' + medals[idx] + '</div>';
-    h += '<div style="font-size:13px;font-weight:700;margin:4px 0;color:var(--text)">' + esc(p.player_name) + '</div>';
+    h += '<div style="font-size:13px;font-weight:700;margin:4px 0;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.7)">' + esc(p.player_name) + '</div>';
     h += '<div style="background:' + colors[idx] + ';border-radius:8px 8px 0 0;height:' + height + ';display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:800">';
     h += '<div style="font-size:' + (isFirst ? '28px' : '22px') + '">' + p[valueKey] + '</div>';
     h += '<div style="font-size:10px;opacity:0.8">' + label + '</div>';

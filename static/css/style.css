@@ -250,10 +250,10 @@
 
 /* Tabs in dark mode */
 [data-theme="dark"] .tab {
-  color: #c0cdd8;
+  color: #e0e8f0 !important;
 }
 [data-theme="dark"] .tab.active {
-  color: #34d399;
+  color: #34d399 !important;
   border-bottom-color: #34d399;
 }
 
