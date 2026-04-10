@@ -166,20 +166,32 @@ def get_scorecard(db: Session, innings_id: int) -> ScorecardOut:
     # Batting stats
     batter_map: dict[int, dict] = {}
     for b in balls:
+        # Add striker
         pid = b.batter_id
-        if pid not in batter_map:
+        if pid and pid not in batter_map:
             player = db.query(Player).filter(Player.id == pid).first()
-            batter_map[pid] = {
-                "player_id": pid, "player_name": player.name,
-                "runs": 0, "balls_faced": 0, "fours": 0, "sixes": 0,
-            }
-        batter_map[pid]["runs"] += b.runs_scored
-        if b.is_legal:
-            batter_map[pid]["balls_faced"] += 1
-        if b.runs_scored == 4:
-            batter_map[pid]["fours"] += 1
-        elif b.runs_scored == 6:
-            batter_map[pid]["sixes"] += 1
+            if player:
+                batter_map[pid] = {
+                    "player_id": pid, "player_name": player.name,
+                    "runs": 0, "balls_faced": 0, "fours": 0, "sixes": 0,
+                }
+        # Add non-striker (so they appear in scorecard even if 0 balls faced)
+        nsid = b.non_striker_id
+        if nsid and nsid not in batter_map:
+            ns_player = db.query(Player).filter(Player.id == nsid).first()
+            if ns_player:
+                batter_map[nsid] = {
+                    "player_id": nsid, "player_name": ns_player.name,
+                    "runs": 0, "balls_faced": 0, "fours": 0, "sixes": 0,
+                }
+        if pid and pid in batter_map:
+            batter_map[pid]["runs"] += b.runs_scored
+            if b.is_legal:
+                batter_map[pid]["balls_faced"] += 1
+            if b.runs_scored == 4:
+                batter_map[pid]["fours"] += 1
+            elif b.runs_scored == 6:
+                batter_map[pid]["sixes"] += 1
 
     # Build dismissal info
     dismissal_map = {}
