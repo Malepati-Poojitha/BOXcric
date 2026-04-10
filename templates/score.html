@@ -280,8 +280,9 @@ function renderScoringUI() {
     <button class="btn btn-outline btn-sm" onclick="switchInnings()">🔄 Switch Innings</button>
     <button class="btn btn-outline btn-sm" onclick="endMatchFromScore()">🏁 End Match</button>
   </div>
-  <div style="margin-top:8px">
-    <a href="javascript:void(0)" onclick="window.location.href=(window.location.pathname.indexOf('/app/')===0?'/app/match/':'/admin/match/')+MATCH_ID" class="btn btn-outline btn-sm btn-block">📊 View Scorecard</a>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+    <button class="btn btn-outline btn-sm" onclick="changeOvers()">🔢 Change Overs (${matchData.overs})</button>
+    <a href="javascript:void(0)" onclick="window.location.href=(window.location.pathname.indexOf('/app/')===0?'/app/match/':'/admin/match/')+MATCH_ID" class="btn btn-outline btn-sm">📊 Scorecard</a>
   </div>
   `;
 
@@ -752,6 +753,24 @@ async function undoLastBall() {
       await refreshScore();
     } else {
       toast(res?.detail || 'Cannot undo this ball', 'error');
+    }
+  });
+}
+
+function changeOvers() {
+  var current = matchData.overs;
+  var newOvers = prompt('Change match overs (currently ' + current + ').\nEnter new number of overs:', current);
+  if (!newOvers) return;
+  newOvers = parseInt(newOvers);
+  if (isNaN(newOvers) || newOvers < 1) { toast('Enter a valid number', 'error'); return; }
+  if (newOvers === current) return;
+  api('/matches/' + MATCH_ID + '/overs', 'PUT', {overs: newOvers}).then(function(res) {
+    if (res && res.overs) {
+      matchData.overs = res.overs;
+      toast('Overs changed to ' + res.overs, 'success');
+      renderScoringUI();
+    } else {
+      toast(res && res.detail ? res.detail : 'Failed', 'error');
     }
   });
 }

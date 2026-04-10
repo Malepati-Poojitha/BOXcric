@@ -53,6 +53,23 @@ def get_match(match_id: int, db: Session = Depends(get_db)):
     return match
 
 
+@router.put("/{match_id}/overs")
+def update_overs(match_id: int, request_body: dict, db: Session = Depends(get_db)):
+    """Change the number of overs for a match (can reduce, not increase beyond original)."""
+    match = db.query(Match).filter(Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    new_overs = request_body.get("overs")
+    if not new_overs or not isinstance(new_overs, int) or new_overs < 1:
+        raise HTTPException(status_code=400, detail="Overs must be a positive integer")
+    if match.status == MatchStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Cannot change overs for a completed match")
+    match.overs = new_overs
+    db.commit()
+    db.refresh(match)
+    return {"detail": f"Overs updated to {new_overs}", "overs": new_overs}
+
+
 @router.post("/{match_id}/toss", response_model=MatchOut)
 def record_toss(match_id: int, data: MatchToss, request: Request, db: Session = Depends(get_db)):
     match = db.query(Match).filter(Match.id == match_id).first()
