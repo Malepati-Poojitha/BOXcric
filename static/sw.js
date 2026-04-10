@@ -1,4 +1,4 @@
-const CACHE_NAME = 'boxcric-v3';
+const CACHE_NAME = 'boxcric-v20';
 const STATIC_ASSETS = [
   '/static/css/style.css',
   '/static/js/app.js',
