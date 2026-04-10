@@ -1944,23 +1944,25 @@ body {
 
 /* Touch-friendly enhancements */
 @media (max-width: 768px) {
-  /* Bigger tap targets */
-  .btn { min-height: 44px; }
+  /* Compact scoring for mobile */
+  .container { padding: 12px 8px 80px; }
+  .btn { min-height: 36px; }
   .run-btn {
-    padding: 22px 8px;
-    font-size: 24px;
-    min-height: 64px;
-    border-radius: 12px;
+    padding: 8px 4px;
+    font-size: 17px;
+    min-height: 42px;
+    border-radius: 8px;
   }
   .extra-btn {
-    padding: 14px 8px;
-    min-height: 48px;
+    padding: 6px 4px;
+    min-height: 32px;
+    font-size: 10px;
   }
   .wicket-btn {
-    padding: 20px;
-    font-size: 18px;
-    min-height: 56px;
-    border-radius: 12px;
+    padding: 10px;
+    font-size: 14px;
+    min-height: 40px;
+    border-radius: 8px;
   }
 
   /* Scoring console: stack vertically on mobile */
@@ -2010,8 +2012,17 @@ body {
   }
 
   /* Live hero compact */
-  .live-hero { padding: 16px; border-radius: 0; margin: -12px -12px 12px; }
-  .live-hero .score-big { font-size: 38px; }
+  .live-hero { padding: 10px 12px; border-radius: 0; margin: -12px -8px 8px; }
+  .live-hero .score-big { font-size: 28px; }
+
+  /* Compact cards on scoring page */
+  .card-body { padding: 10px; }
+  .card-header { padding: 8px 12px; font-size: 13px; }
+  .player-select-group select { font-size: 14px; padding: 8px; }
+  .form-group { margin-bottom: 8px; }
+  .form-group label { font-size: 12px; margin-bottom: 2px; }
+  .mt-3 { margin-top: 8px !important; }
+  .mt-4 { margin-top: 10px !important; }
 
   /* Swipe hint for tabs */
   .tabs { 
