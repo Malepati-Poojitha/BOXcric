@@ -313,7 +313,8 @@ async function loadScorecard(inningsId, tabEl) {
     <th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th>
   </tr></thead><tbody>`;
   sc.batters.forEach(b => {
-    h += `<tr><td><span class="batter-name">${b.player_name}</span></td>
+    var dimStyle = b.dismissal === 'not out' ? 'color:#059669;font-weight:600' : 'color:var(--text-light)';
+    h += `<tr><td><span class="batter-name">${b.player_name}</span><span class="dismissal" style="${dimStyle}">${b.dismissal}</span></td>
       <td><strong>${b.runs}</strong></td><td>${b.balls_faced}</td>
       <td>${b.fours}</td><td>${b.sixes}</td><td>${b.strike_rate}</td></tr>`;
   });

@@ -181,10 +181,37 @@ def get_scorecard(db: Session, innings_id: int) -> ScorecardOut:
         elif b.runs_scored == 6:
             batter_map[pid]["sixes"] += 1
 
+    # Build dismissal info
+    dismissal_map = {}
+    for b in balls:
+        if b.is_wicket and b.dismissed_player_id:
+            wtype = b.wicket_type.value if b.wicket_type else 'out'
+            bowler = db.query(Player).filter(Player.id == b.bowler_id).first()
+            fielder = db.query(Player).filter(Player.id == b.fielder_id).first() if b.fielder_id else None
+            bname = bowler.name if bowler else ''
+            fname = fielder.name if fielder else ''
+            if wtype == 'caught':
+                dismissal_map[b.dismissed_player_id] = f'c {fname} b {bname}'
+            elif wtype == 'bowled':
+                dismissal_map[b.dismissed_player_id] = f'b {bname}'
+            elif wtype == 'lbw':
+                dismissal_map[b.dismissed_player_id] = f'lbw b {bname}'
+            elif wtype == 'run_out':
+                dismissal_map[b.dismissed_player_id] = f'run out ({fname})' if fname else 'run out'
+            elif wtype == 'stumped':
+                dismissal_map[b.dismissed_player_id] = f'st {fname} b {bname}'
+            elif wtype == 'hit_wicket':
+                dismissal_map[b.dismissed_player_id] = f'hit wicket b {bname}'
+            elif wtype == 'retired':
+                dismissal_map[b.dismissed_player_id] = 'retired'
+            else:
+                dismissal_map[b.dismissed_player_id] = wtype
+
     batters = []
     for stats in batter_map.values():
         sr = round((stats["runs"] / stats["balls_faced"]) * 100, 2) if stats["balls_faced"] > 0 else 0.0
-        batters.append(BatterStatsOut(strike_rate=sr, **stats))
+        dismissal = dismissal_map.get(stats["player_id"], "not out")
+        batters.append(BatterStatsOut(strike_rate=sr, dismissal=dismissal, **stats))
 
     # Bowling stats
     bowler_map: dict[int, dict] = {}

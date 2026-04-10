@@ -56,6 +56,7 @@ class BatterStatsOut(BaseModel):
     fours: int
     sixes: int
     strike_rate: float
+    dismissal: str = "not out"
 
 
 class BowlerStatsOut(BaseModel):
