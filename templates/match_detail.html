@@ -410,7 +410,7 @@ async function loadMatchGraph() {
 
   // Bar chart: runs per over
   h += '<div style="font-size:12px;font-weight:600;color:var(--text-light);margin-bottom:6px">Runs per Over</div>';
-  h += '<div style="display:flex;align-items:flex-end;gap:4px;height:' + graphH + 'px;border-bottom:2px solid var(--border);padding-bottom:2px">';
+  h += '<div style="display:flex;align-items:flex-end;gap:4px;height:' + graphH + 'px;border-bottom:2px solid var(--border);padding-bottom:2px;padding-top:20px;overflow:visible">';
 
   for (var i = 0; i < maxOver; i++) {
     var o1 = inn1 && inn1.overs[i] ? inn1.overs[i] : null;
