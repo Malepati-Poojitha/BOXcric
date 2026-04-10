@@ -249,8 +249,13 @@
 [data-theme="dark"] li[style*="background:#ecfdf5"] { background: #0d3d20 !important; }
 
 /* Tabs in dark mode */
+[data-theme="dark"] .page-title {
+  color: #ffffff !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
 [data-theme="dark"] .tab {
-  color: #e0e8f0 !important;
+  color: #ffffff !important;
 }
 [data-theme="dark"] .tab.active {
   color: #34d399 !important;
