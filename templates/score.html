@@ -415,12 +415,32 @@ function scoreBall(runs) {
   };
   pendingCorrection = false;
   showSaving();
+  postBallWithRetry(payload);
+}
+
+function postBallWithRetry(payload, attempt) {
+  attempt = attempt || 1;
   api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload).then(function(ball) {
     hideSaving();
     if (!ball || ball.detail) {
-      toast(ball && ball.detail ? ball.detail : 'Error recording ball', 'error');
+      var errMsg = (ball && ball.detail) ? ball.detail : 'Network error';
+      if (attempt < 3 && !errMsg.includes('already completed') && !errMsg.includes('hosts')) {
+        toast('Retrying... (' + attempt + '/3)', 'info');
+        showSaving();
+        setTimeout(function() { postBallWithRetry(payload, attempt + 1); }, 1500);
+      } else {
+        toast('Error: ' + errMsg, 'error');
+      }
     }
     bgSync();
+  }).catch(function() {
+    if (attempt < 3) {
+      toast('Network error, retrying...', 'info');
+      setTimeout(function() { postBallWithRetry(payload, attempt + 1); }, 2000);
+    } else {
+      hideSaving();
+      toast('Failed after 3 attempts', 'error');
+    }
   });
 }
 
@@ -449,13 +469,7 @@ function scoreExtra(type, extraRuns) {
   };
   pendingCorrection = false;
   showSaving();
-  api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload).then(function(ball) {
-    hideSaving();
-    if (!ball || ball.detail) {
-      toast(ball && ball.detail ? ball.detail : 'Error', 'error');
-    }
-    bgSync();
-  });
+  postBallWithRetry(payload);
 }
 
 function updateHeroInstant(runs, wickets, overs, balls) {
