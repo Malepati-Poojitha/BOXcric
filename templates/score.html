@@ -7,8 +7,8 @@
 </div>
 
 <!-- Wicket Modal -->
-<div class="modal-backdrop" id="wicketModal">
-  <div class="modal">
+<div class="modal-backdrop" id="wicketModal" style="padding-bottom:80px">
+  <div class="modal" style="max-height:70vh">
     <div class="modal-header">
       <h3>🔴 Wicket!</h3>
       <button class="modal-close" onclick="closeWicketModal()">&times;</button>
@@ -50,8 +50,8 @@
 </div>
 
 <!-- Change Batter Modal -->
-<div class="modal-backdrop" id="newBatterModal">
-  <div class="modal">
+<div class="modal-backdrop" id="newBatterModal" style="padding-bottom:80px">
+  <div class="modal" style="max-height:60vh">
     <div class="modal-header">
       <h3>New Batsman</h3>
       <button class="modal-close" onclick="el('newBatterModal').classList.remove('open')">&times;</button>
@@ -69,23 +69,19 @@
 </div>
 
 <!-- Change Bowler Modal (end of over) -->
-<div class="modal-backdrop" id="changeBowlerModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>🔄 New Over — Select Bowler</h3>
+<div class="modal-backdrop" id="changeBowlerModal" style="padding-bottom:80px">
+  <div class="modal" style="max-height:60vh">
+    <div class="modal-header" style="padding:12px 16px">
+      <h3 style="font-size:16px">🔄 Select Bowler</h3>
       <button class="modal-close" onclick="el('changeBowlerModal').classList.remove('open')">&times;</button>
     </div>
-    <div class="modal-body">
-      <div class="text-center mb-2">
-        <p class="text-sm text-muted">Over completed. Select next bowler.</p>
-        <p class="text-sm" style="color:var(--accent)" id="prevBowlerNote"></p>
-      </div>
-      <div class="form-group">
-        <label>Next Over Bowler *</label>
-        <select id="newBowlerSelect" style="font-size:16px;padding:10px"></select>
+    <div class="modal-body" style="padding:12px 16px">
+      <p class="text-sm" style="color:var(--accent);margin-bottom:8px" id="prevBowlerNote"></p>
+      <div class="form-group" style="margin-bottom:0">
+        <select id="newBowlerSelect" style="font-size:16px;padding:10px;width:100%"></select>
       </div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="padding:12px 16px 24px">
       <button class="btn btn-primary btn-lg btn-block" onclick="confirmNewBowler()">Start Next Over</button>
     </div>
   </div>
