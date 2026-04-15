@@ -318,7 +318,7 @@ async function loadScorecard(inningsId, tabEl) {
       <td><strong>${b.runs}</strong></td><td>${b.balls_faced}</td>
       <td>${b.fours}</td><td>${b.sixes}</td><td>${b.strike_rate}</td></tr>`;
   });
-  h += `<tr class="extras-row"><td>Extras</td><td colspan="5">${sc.total_runs - sc.batters.reduce((s,b) => s+b.runs, 0)}</td></tr>`;
+  h += `<tr class="extras-row"><td>Extras</td><td colspan="5">${sc.total_extras || 0}</td></tr>`;
   h += `<tr class="total-row"><td><strong>Total</strong></td><td colspan="5"><strong>${sc.total_runs}/${sc.total_wickets}</strong> (${sc.overs} ov)</td></tr>`;
   h += `</tbody></table>`;
 

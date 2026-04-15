@@ -259,9 +259,11 @@ def get_scorecard(db: Session, innings_id: int) -> ScorecardOut:
         ))
 
     overs_str = f"{innings.total_overs}.{innings.total_balls}"
+    total_extras = sum(b.extra_runs for b in balls)
     return ScorecardOut(
         match_id=innings.match_id, innings_number=innings.innings_number,
         batting_team=innings.batting_team.name,
         total_runs=innings.total_runs, total_wickets=innings.total_wickets,
+        total_extras=total_extras,
         overs=overs_str, batters=batters, bowlers=bowlers,
     )

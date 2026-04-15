@@ -75,6 +75,7 @@ class ScorecardOut(BaseModel):
     batting_team: str
     total_runs: int
     total_wickets: int
+    total_extras: int = 0
     overs: str
     batters: List[BatterStatsOut]
     bowlers: List[BowlerStatsOut]
