@@ -45,7 +45,7 @@ async function api(url, method = 'GET', body = null) {
   if (body) opts.body = JSON.stringify(body);
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 30000);
     opts.signal = controller.signal;
     const res = await fetch(url, opts);
     clearTimeout(timeout);

@@ -108,19 +108,20 @@ let battingPlayers = [];
 let bowlingPlayers = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Load all data in parallel — much faster
-  const [teams, players, match] = await Promise.all([
-    api('/teams/'), api('/players/'), api('/matches/' + MATCH_ID)
-  ]);
-  if (teams) teams.forEach(t => teamsMap[t.id] = t);
-  allPlayers = players || [];
-  matchData = match;
+  var backBase = (window.location.pathname.indexOf('/app/') === 0) ? '/app/match/' : '/admin/match/';
+  try {
+    // Load all data in parallel — much faster
+    const [teams, players, match] = await Promise.all([
+      api('/teams/'), api('/players/'), api('/matches/' + MATCH_ID)
+    ]);
+    if (Array.isArray(teams)) teams.forEach(t => teamsMap[t.id] = t);
+    allPlayers = Array.isArray(players) ? players : [];
+    matchData = (match && match.id) ? match : null;
 
-  if (!matchData || (matchData.status !== 'live' && matchData.status !== 'innings_break')) {
-    var backUrl = (window.location.pathname.indexOf('/app/') === 0) ? '/app/match/' + MATCH_ID : '/admin/match/' + MATCH_ID;
-    el('scoringApp').innerHTML = emptyState('⚠️', 'Match is not live', '<a href="' + backUrl + '" class="btn btn-primary mt-2">Go to Match</a>');
-    return;
-  }
+    if (!matchData || (matchData.status !== 'live' && matchData.status !== 'innings_break')) {
+      el('scoringApp').innerHTML = emptyState('⚠️', 'Match is not live', '<a href="' + backBase + MATCH_ID + '" class="btn btn-primary mt-2">Go to Match</a>');
+      return;
+    }
 
   // Find active innings
   currentInnings = matchData.innings.find(i => !i.is_completed);
@@ -129,8 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const inn2 = matchData.innings.find(i => i.innings_number === 2);
     if (inn2 && !inn2.is_completed) currentInnings = inn2;
     else {
-      var backUrl2 = (window.location.pathname.indexOf('/app/') === 0) ? '/app/match/' + MATCH_ID : '/admin/match/' + MATCH_ID;
-      el('scoringApp').innerHTML = emptyState('✅', 'Both innings complete', '<a href="' + backUrl2 + '" class="btn btn-primary mt-2">View Result</a>');
+      el('scoringApp').innerHTML = emptyState('✅', 'Both innings complete', '<a href="' + backBase + MATCH_ID + '" class="btn btn-primary mt-2">View Result</a>');
       return;
     }
   }
@@ -164,6 +164,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       saveSelections();
     }
   });
+  } catch(err) {
+    console.error('Score page load error:', err);
+    el('scoringApp').innerHTML = emptyState('❌', 'Failed to load scoring page', '<button class="btn btn-primary mt-2" onclick="window.location.reload()">Retry</button>');
+  }
 });
 
 function renderScoringUI() {
