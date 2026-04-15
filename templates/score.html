@@ -583,10 +583,32 @@ async function fullSync() {
       renderScoringUI();
       toast('2nd innings started - select batsmen and bowler', 'success');
     } else {
-      // Match is done - show result
+      // Match is done - auto end match and show result
+      if (overlay) overlay.innerHTML = '<div style="text-align:center;color:#fff;padding:24px"><div class="spinner" style="margin:0 auto 16px;border-top-color:#fbbf24"></div><div style="font-size:16px">Calculating result...</div></div>';
+      // End the match to calculate result
+      await api('/matches/' + MATCH_ID + '/end', 'POST');
+      await api('/api/features/milestones/check/' + MATCH_ID);
+      await new Promise(function(r) { setTimeout(r, 1500); });
+      // Reload to get result
+      matchData = await api('/matches/' + MATCH_ID);
       var result = matchData.result_summary || 'Match Completed';
-      if (overlay) overlay.innerHTML = '<div style="text-align:center;color:#fff;padding:24px"><div style="font-size:48px;margin-bottom:16px">🏆</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">' + result + '</div><div style="font-size:14px;opacity:0.8">Redirecting to match details...</div></div>';
-      await new Promise(function(r) { setTimeout(r, 3000); });
+      // Get team scores
+      var inn1 = matchData.innings.find(function(i){return i.innings_number===1;});
+      var inn2 = matchData.innings.find(function(i){return i.innings_number===2;});
+      var t1 = teamsMap[matchData.team1_id] || {name:'Team 1'};
+      var t2 = teamsMap[matchData.team2_id] || {name:'Team 2'};
+      var scoreHtml = '';
+      if (inn1 && inn2) {
+        var bt1 = teamsMap[inn1.batting_team_id] || {name:'Team'};
+        var bt2 = teamsMap[inn2.batting_team_id] || {name:'Team'};
+        scoreHtml = '<div style="display:flex;justify-content:center;gap:24px;margin:16px 0;font-size:14px">'
+          + '<div style="text-align:center"><div style="opacity:0.7">' + bt1.name + '</div><div style="font-size:24px;font-weight:800">' + inn1.total_runs + '/' + inn1.total_wickets + '</div><div style="opacity:0.5;font-size:12px">(' + inn1.total_overs + '.' + inn1.total_balls + ' ov)</div></div>'
+          + '<div style="font-size:20px;align-self:center;opacity:0.5">vs</div>'
+          + '<div style="text-align:center"><div style="opacity:0.7">' + bt2.name + '</div><div style="font-size:24px;font-weight:800">' + inn2.total_runs + '/' + inn2.total_wickets + '</div><div style="opacity:0.5;font-size:12px">(' + inn2.total_overs + '.' + inn2.total_balls + ' ov)</div></div>'
+          + '</div>';
+      }
+      if (overlay) overlay.innerHTML = '<div style="text-align:center;color:#fff;padding:24px"><div style="font-size:56px;margin-bottom:12px">🏆</div>' + scoreHtml + '<div style="font-size:20px;font-weight:800;margin:8px 0;color:#34d399">' + result + '</div><div style="font-size:13px;opacity:0.6;margin-top:16px">Redirecting to match details...</div></div>';
+      await new Promise(function(r) { setTimeout(r, 4000); });
       var backUrl = (window.location.pathname.indexOf('/app/')===0?'/app/match/':'/admin/match/') + MATCH_ID;
       window.location.href = backUrl;
     }
