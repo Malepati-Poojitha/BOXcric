@@ -108,10 +108,13 @@ let battingPlayers = [];
 let bowlingPlayers = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const [teams, players] = await Promise.all([api('/teams/'), api('/players/')]);
-  teams.forEach(t => teamsMap[t.id] = t);
-  allPlayers = players;
-  matchData = await api(`/matches/${MATCH_ID}`);
+  // Load all data in parallel — much faster
+  const [teams, players, match] = await Promise.all([
+    api('/teams/'), api('/players/'), api('/matches/' + MATCH_ID)
+  ]);
+  if (teams) teams.forEach(t => teamsMap[t.id] = t);
+  allPlayers = players || [];
+  matchData = match;
 
   if (!matchData || (matchData.status !== 'live' && matchData.status !== 'innings_break')) {
     var backUrl = (window.location.pathname.indexOf('/app/') === 0) ? '/app/match/' + MATCH_ID : '/admin/match/' + MATCH_ID;
@@ -146,28 +149,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (saved.bowler) currentBowler = saved.bowler;
   } catch(e) {}
 
-  // If no saved state, try to detect from last ball + load dismissed list
-  try {
-    var lb = await api('/scoring/innings/' + currentInnings.id + '/lastball');
+  // Render UI immediately with cached selections
+  renderScoringUI();
+
+  // Load last ball data in background (non-blocking)
+  api('/scoring/innings/' + currentInnings.id + '/lastball').then(function(lb) {
     if (lb) {
-      if (lb.striker && !striker) striker = lb.striker;
-      if (lb.non_striker && !nonStriker) nonStriker = lb.non_striker;
-      if (lb.bowler && !currentBowler) currentBowler = lb.bowler;
-      // Load dismissed batters
+      if (lb.striker && !striker) { striker = lb.striker; if (el('strikerSelect')) el('strikerSelect').value = striker; }
+      if (lb.non_striker && !nonStriker) { nonStriker = lb.non_striker; if (el('nonStrikerSelect')) el('nonStrikerSelect').value = nonStriker; }
+      if (lb.bowler && !currentBowler) { currentBowler = lb.bowler; if (el('bowlerSelect')) el('bowlerSelect').value = currentBowler; }
       if (lb.dismissed && lb.dismissed.length) {
         lb.dismissed.forEach(function(pid) { dismissedBatters.add(pid); });
       }
+      saveSelections();
     }
-  } catch(e) {}
-
-  renderScoringUI();
-
-  // Auto-select dropdowns after render
-  setTimeout(function() {
-    if (striker && el('strikerSelect')) el('strikerSelect').value = striker;
-    if (nonStriker && el('nonStrikerSelect')) el('nonStrikerSelect').value = nonStriker;
-    if (currentBowler && el('bowlerSelect')) el('bowlerSelect').value = currentBowler;
-  }, 100);
+  });
 });
 
 function renderScoringUI() {
