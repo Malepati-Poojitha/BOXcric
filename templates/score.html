@@ -475,17 +475,26 @@ function bgSync() {
     api('/scoring/match/' + MATCH_ID + '/live').then(function(live) {
       bgSyncRunning = false;
       if (!live || live.detail) return;
-      currentInnings.total_runs = live.total_runs;
-      currentInnings.total_wickets = live.total_wickets;
+      var serverTotal = live.total_runs;
+      var serverWickets = live.total_wickets;
       var parts = live.overs.split('.');
-      currentInnings.total_overs = parseInt(parts[0]);
-      currentInnings.total_balls = parseInt(parts[1] || '0');
-      updateHeroInstant(live.total_runs, live.total_wickets, currentInnings.total_overs, currentInnings.total_balls);
+      var serverOvers = parseInt(parts[0]);
+      var serverBalls = parseInt(parts[1] || '0');
+      var serverTotalBalls = serverOvers * 6 + serverBalls;
+      var localTotalBalls = currentInnings.total_overs * 6 + currentInnings.total_balls;
+      // Only update if server is ahead or equal — never go backwards
+      if (serverTotalBalls >= localTotalBalls) {
+        currentInnings.total_runs = serverTotal;
+        currentInnings.total_wickets = serverWickets;
+        currentInnings.total_overs = serverOvers;
+        currentInnings.total_balls = serverBalls;
+        updateHeroInstant(serverTotal, serverWickets, serverOvers, serverBalls);
+      }
       if (live.status === 'completed' || live.status === 'innings_break') {
         fullSync();
       }
     }).catch(function() { bgSyncRunning = false; });
-  }, 800);
+  }, 1200);
 }
 
 // Full sync — only when innings ends or major state change
