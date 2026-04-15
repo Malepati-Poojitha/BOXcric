@@ -204,6 +204,7 @@ function renderScoringUI() {
       <div style="text-align:right">
         <div id="heroRR" style="font-size:13px;opacity:0.8">CRR: 0.00</div>
         <div id="heroRRR" style="font-size:13px;opacity:0.8;color:#fbbf24;display:none">RRR: 0.00</div>
+        <div id="syncIndicator" style="font-size:10px;opacity:0;transition:opacity 0.2s;color:#fbbf24">saving...</div>
       </div>
     </div>
     <div id="recentBallsDisplay" style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap"></div>
@@ -340,6 +341,25 @@ function validateSelection() {
   return true;
 }
 
+var pendingCalls = 0;
+function showSaving() {
+  pendingCalls++;
+  var ind = el('syncIndicator');
+  if (ind) ind.style.opacity = '1';
+}
+function hideSaving() {
+  pendingCalls--;
+  if (pendingCalls <= 0) {
+    pendingCalls = 0;
+    var ind = el('syncIndicator');
+    if (ind) { ind.textContent = 'saved'; ind.style.color = '#34d399'; }
+    setTimeout(function() {
+      var ind2 = el('syncIndicator');
+      if (ind2) { ind2.style.opacity = '0'; ind2.textContent = 'saving...'; ind2.style.color = '#fbbf24'; }
+    }, 800);
+  }
+}
+
 function scoreBall(runs) {
   if (!validateSelection()) return;
   haptic(runs >= 4 ? 50 : 20);
@@ -371,7 +391,9 @@ function scoreBall(runs) {
     is_correction: pendingCorrection
   };
   pendingCorrection = false;
+  showSaving();
   api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload).then(function(ball) {
+    hideSaving();
     if (!ball || ball.detail) {
       toast(ball && ball.detail ? ball.detail : 'Error recording ball', 'error');
     }
@@ -402,7 +424,9 @@ function scoreExtra(type, extraRuns) {
     is_correction: pendingCorrection
   };
   pendingCorrection = false;
+  showSaving();
   api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload).then(function(ball) {
+    hideSaving();
     if (!ball || ball.detail) {
       toast(ball && ball.detail ? ball.detail : 'Error', 'error');
     }
