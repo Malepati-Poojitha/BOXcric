@@ -1983,8 +1983,9 @@ body {
 
 /* Touch-friendly enhancements */
 @media (max-width: 768px) {
-  /* Compact scoring for mobile */
-  .container { padding: 12px 8px 80px; }
+  /* Compact for mobile */
+  .container { padding: 8px 6px 80px; max-width: 100%; overflow-x: hidden; }
+  body { overflow-x: hidden; }
   .btn { min-height: 36px; }
   .run-btn {
     padding: 10px 4px;
@@ -2052,11 +2053,23 @@ body {
   }
 
   /* Live hero compact */
-  .live-hero { padding: 10px 12px; border-radius: 0; margin: -12px -8px 8px; }
-  .live-hero .score-big { font-size: 28px; }
+  .live-hero { padding: 8px 10px; border-radius: 0; margin: -8px -6px 6px; width: calc(100% + 12px); }
+  .live-hero .score-big { font-size: 26px; }
 
   /* Compact cards on scoring page */
-  .card-body { padding: 10px; }
+  .card-body { padding: 8px; }
+  .card { margin-left: 0; margin-right: 0; }
+  
+  /* Scorecard table scroll */
+  .scorecard-table { font-size: 12px; }
+  .scorecard-table th, .scorecard-table td { padding: 6px 4px; }
+  
+  /* Grid spacing */
+  .grid-2 { gap: 6px; }
+  
+  /* Tabs compact */
+  .tab { padding: 8px 12px; font-size: 13px; }
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .card-header { padding: 8px 12px; font-size: 13px; }
   .player-select-group select { font-size: 14px; padding: 8px; }
   .form-group { margin-bottom: 8px; }
