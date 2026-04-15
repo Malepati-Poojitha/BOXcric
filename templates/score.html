@@ -338,6 +338,7 @@ function validateSelection() {
 
 var pendingCalls = 0;
 var scoringLocked = false;
+var unlockTimer = null;
 
 function showSaving() {
   pendingCalls++;
@@ -350,25 +351,33 @@ function showSaving() {
     b.style.opacity = '0.5';
     b.style.pointerEvents = 'none';
   });
+  // Safety: auto-unlock after 10 seconds if stuck
+  if (unlockTimer) clearTimeout(unlockTimer);
+  unlockTimer = setTimeout(function() {
+    if (scoringLocked) {
+      hideSaving();
+      bgSync();
+    }
+  }, 10000);
+}
 }
 function hideSaving() {
-  pendingCalls--;
-  if (pendingCalls <= 0) {
-    pendingCalls = 0;
-    scoringLocked = false;
-    var ind = el('syncIndicator');
-    if (ind) { ind.textContent = '✓ saved'; ind.style.color = '#34d399'; }
-    // Re-enable buttons
-    document.querySelectorAll('.run-btn, .extra-btn, .wicket-btn').forEach(function(b) {
-      b.disabled = false;
-      b.style.opacity = '1';
-      b.style.pointerEvents = 'auto';
-    });
-    setTimeout(function() {
-      var ind2 = el('syncIndicator');
-      if (ind2) { ind2.style.opacity = '0'; }
-    }, 600);
-  }
+  pendingCalls = 0;
+  scoringLocked = false;
+  if (unlockTimer) { clearTimeout(unlockTimer); unlockTimer = null; }
+  var ind = el('syncIndicator');
+  if (ind) { ind.textContent = '✓ saved'; ind.style.color = '#34d399'; }
+  // Re-enable buttons
+  document.querySelectorAll('.run-btn, .extra-btn, .wicket-btn').forEach(function(b) {
+    b.disabled = false;
+    b.style.opacity = '1';
+    b.style.pointerEvents = 'auto';
+  });
+  setTimeout(function() {
+    var ind2 = el('syncIndicator');
+    if (ind2) { ind2.style.opacity = '0'; }
+  }, 600);
+}
 }
 
 function scoreBall(runs) {
