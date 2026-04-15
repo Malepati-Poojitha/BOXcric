@@ -2029,11 +2029,12 @@ body {
     max-width: 100%;
     margin: 0;
     border-radius: 16px 16px 0 0;
-    max-height: 85vh;
+    max-height: 75vh;
   }
   .modal-backdrop {
     align-items: flex-end;
     padding: 0;
+    padding-bottom: 60px;
   }
 
   /* Player grid: 2 columns on mobile */
