@@ -392,7 +392,18 @@ function scoreBall(runs) {
   updateHeroInstant(newRuns, currentInnings.total_wickets, newOvers, newBalls);
   addRecentBall(runs, 'none', false);
   if (runs % 2 === 1) swapStrike();
-  if (overComplete) { swapStrike(); promptBowlerChange(); }
+  if (overComplete) {
+    swapStrike();
+    // Check if innings is done (all overs bowled)
+    if (newOvers >= matchData.overs) {
+      // Innings over - don't ask for bowler, auto-switch
+      toast('Innings complete - all overs bowled', 'info');
+      scoringLocked = true;
+      showSaving();
+    } else {
+      promptBowlerChange();
+    }
+  }
 
   // Fire-and-forget API call — don't block UI
   var payload = {
@@ -516,13 +527,26 @@ function bgSync() {
 
 // Full sync — only when innings ends or major state change
 async function fullSync() {
+  scoringLocked = true;
+  // Show loading overlay
+  el('scoringApp').insertAdjacentHTML('beforeend', '<div id="inningsOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center"><div style="text-align:center;color:#fff"><div class="spinner" style="margin:0 auto 16px;border-top-color:#34d399"></div><div style="font-size:16px;font-weight:700">Updating scores...</div></div></div>');
+
+  // Wait for server to fully process
+  await new Promise(function(r) { setTimeout(r, 2000); });
+
   matchData = await api('/matches/' + MATCH_ID);
   var prevInnId = currentInnings.id;
   currentInnings = matchData.innings.find(function(i) { return i.id === prevInnId; });
+
+  var overlay = el('inningsOverlay');
+
   if (!currentInnings || currentInnings.is_completed) {
-    toast('Innings completed!', 'info');
     var nextInn = matchData.innings.find(function(i) { return !i.is_completed; });
     if (nextInn) {
+      // Show innings break message
+      if (overlay) overlay.innerHTML = '<div style="text-align:center;color:#fff;padding:24px"><div style="font-size:48px;margin-bottom:16px">🏏</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">Innings Complete</div><div style="font-size:14px;opacity:0.8">Switching to 2nd innings...</div></div>';
+      await new Promise(function(r) { setTimeout(r, 2500); });
+
       currentInnings = nextInn;
       var battingTeam = teamsMap[currentInnings.batting_team_id];
       var bowlingTeam = teamsMap[currentInnings.bowling_team_id];
@@ -532,11 +556,23 @@ async function fullSync() {
       dismissedBatters = new Set();
       recentBalls = [];
       localStorage.removeItem('boxcric_scoring_' + MATCH_ID + '_' + currentInnings.id);
+      if (overlay) overlay.remove();
+      scoringLocked = false;
       renderScoringUI();
+      toast('2nd innings started - select batsmen and bowler', 'success');
     } else {
+      // Match is done - show result
+      var result = matchData.result_summary || 'Match Completed';
+      if (overlay) overlay.innerHTML = '<div style="text-align:center;color:#fff;padding:24px"><div style="font-size:48px;margin-bottom:16px">🏆</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">' + result + '</div><div style="font-size:14px;opacity:0.8">Redirecting to match details...</div></div>';
+      await new Promise(function(r) { setTimeout(r, 3000); });
       var backUrl = (window.location.pathname.indexOf('/app/')===0?'/app/match/':'/admin/match/') + MATCH_ID;
-      setTimeout(function() { window.location.href = backUrl; }, 1500);
+      window.location.href = backUrl;
     }
+  } else {
+    // Innings not complete yet — just update UI
+    if (overlay) overlay.remove();
+    scoringLocked = false;
+    updateHeroInstant(currentInnings.total_runs, currentInnings.total_wickets, currentInnings.total_overs, currentInnings.total_balls);
   }
 }
 
