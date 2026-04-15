@@ -44,10 +44,17 @@ async function api(url, method = 'GET', body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    opts.signal = controller.signal;
     const res = await fetch(url, opts);
+    clearTimeout(timeout);
+    if (!res.ok) {
+      try { return await res.json(); } catch(e) { return { detail: 'Server error (' + res.status + ')' }; }
+    }
     return await res.json();
   } catch (e) {
-    console.error('API error:', e);
+    if (e.name === 'AbortError') return { detail: 'Request timeout' };
     return null;
   }
 }

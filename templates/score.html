@@ -421,18 +421,30 @@ function scoreBall(runs) {
 function postBallWithRetry(payload, attempt) {
   attempt = attempt || 1;
   api('/scoring/innings/' + currentInnings.id + '/ball', 'POST', payload).then(function(ball) {
-    hideSaving();
-    if (!ball || ball.detail) {
-      var errMsg = (ball && ball.detail) ? ball.detail : 'Network error';
-      if (attempt < 3 && !errMsg.includes('already completed') && !errMsg.includes('hosts')) {
-        toast('Retrying... (' + attempt + '/3)', 'info');
-        showSaving();
-        setTimeout(function() { postBallWithRetry(payload, attempt + 1); }, 1500);
-      } else {
-        toast('Error: ' + errMsg, 'error');
-      }
+    if (ball && ball.id) {
+      // Success — ball recorded
+      hideSaving();
+      bgSync();
+      return;
     }
-    bgSync();
+    var errMsg = (ball && ball.detail) ? ball.detail : '';
+    if (errMsg.includes('timeout') || errMsg.includes('Server error') || !ball) {
+      // Transient error — retry
+      if (attempt < 3) {
+        toast('Saving... retry ' + attempt, 'info');
+        setTimeout(function() { postBallWithRetry(payload, attempt + 1); }, 2000);
+      } else {
+        hideSaving();
+        bgSync(); // Sync to check if it actually saved
+      }
+    } else if (errMsg) {
+      hideSaving();
+      toast(errMsg, 'error');
+      bgSync();
+    } else {
+      hideSaving();
+      bgSync();
+    }
   }).catch(function() {
     if (attempt < 3) {
       toast('Network error, retrying...', 'info');
