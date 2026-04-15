@@ -183,7 +183,7 @@ function renderScoringUI() {
     if (prevInn) {
       const target = prevInn.total_runs + 1;
       const need = target - inn.total_runs;
-      targetInfo = `<div class="text-sm" style="color:#fbbf24;margin-top:4px">Target: ${target} | Need ${need > 0 ? need : 0} runs</div>`;
+      targetInfo = `<div id="targetInfo" style="color:#fbbf24;font-size:12px;margin-top:2px">Target: ${target} | Need ${need > 0 ? need : 0} off ${(matchData.overs * 6) - (inn.total_overs * 6 + inn.total_balls)} balls</div>`;
     }
   }
 
@@ -469,22 +469,34 @@ function updateHeroInstant(runs, wickets, overs, balls) {
   if (heroRR) heroRR.textContent = 'CRR: ' + crr;
   // Show RRR for 2nd innings
   var heroRRR = el('heroRRR');
-  if (heroRRR && currentInnings && currentInnings.innings_number >= 2 && matchData) {
+  var targetEl = el('targetInfo');
+  if (currentInnings && currentInnings.innings_number >= 2 && matchData) {
     var prevInn = matchData.innings.find(function(i){return i.innings_number===currentInnings.innings_number-1;});
     if (prevInn) {
       var target = prevInn.total_runs + 1;
       var need = target - runs;
       var ballsLeft = (matchData.overs * 6) - totalB;
-      if (need > 0 && ballsLeft > 0) {
-        var rrr = ((need / ballsLeft) * 6).toFixed(2);
-        heroRRR.textContent = 'RRR: ' + rrr;
-        heroRRR.style.display = 'block';
-      } else {
-        heroRRR.style.display = 'none';
+      // Update target display
+      if (targetEl) {
+        if (need > 0) {
+          targetEl.textContent = 'Target: ' + target + ' | Need ' + need + ' off ' + ballsLeft + ' balls';
+        } else {
+          targetEl.textContent = 'Target achieved';
+        }
+      }
+      // Update RRR
+      if (heroRRR) {
+        if (need > 0 && ballsLeft > 0) {
+          var rrr = ((need / ballsLeft) * 6).toFixed(2);
+          heroRRR.textContent = 'RRR: ' + rrr;
+          heroRRR.style.display = 'block';
+        } else {
+          heroRRR.style.display = 'none';
+        }
       }
     }
-  } else if (heroRRR) {
-    heroRRR.style.display = 'none';
+  } else {
+    if (heroRRR) heroRRR.style.display = 'none';
   }
 }
 
