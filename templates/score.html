@@ -160,6 +160,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (lb.bowler && !currentBowler) { currentBowler = lb.bowler; if (el('bowlerSelect')) el('bowlerSelect').value = currentBowler; }
       if (lb.dismissed && lb.dismissed.length) {
         lb.dismissed.forEach(function(pid) { dismissedBatters.add(pid); });
+        // Auto-prompt for new batsman if striker/nonStriker got dismissed (e.g. page refreshed after wicket)
+        if (striker && dismissedBatters.has(striker)) {
+          promptNewBatter(striker);
+        } else if (nonStriker && dismissedBatters.has(nonStriker)) {
+          promptNewBatter(nonStriker);
+        }
       }
       saveSelections();
     }
