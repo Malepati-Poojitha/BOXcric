@@ -11,3 +11,5 @@ cloudflared
 gh
 *.turso.io
 local_boxcric.db*
+BOXcric_Presentation.*
+*.pptx

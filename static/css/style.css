@@ -871,10 +871,6 @@ a { color: inherit; text-decoration: none; }
   border-bottom-color: var(--primary);
 }
 
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-
 /* ===== SCORECARD TABLE ===== */
 .scorecard-table {
   width: 100%;
@@ -1015,21 +1011,6 @@ a { color: inherit; text-decoration: none; }
   gap: 4px;
 }
 
-.live-hero .target-info {
-  margin-top: 12px;
-  padding: 8px 14px;
-  background: rgba(255,255,255,0.1);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  display: inline-block;
-}
-
-.last-ball-display {
-  display: flex;
-  gap: 6px;
-  margin-top: 12px;
-}
-
 .ball-chip {
   width: 32px;
   height: 32px;
@@ -1061,23 +1042,12 @@ a { color: inherit; text-decoration: none; }
   .scoring-console { grid-template-columns: 1fr; }
 }
 
-.scoring-panel { /* Left: current state */ }
-
-.scoring-input { /* Right: buttons */ }
-
-.run-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
 .run-btn {
-  padding: 18px 8px;
+  padding: 22px 10px;
   border: 2px solid var(--border);
   border-radius: var(--radius);
   background: #fff;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   cursor: pointer;
   transition: var(--transition);
@@ -1114,11 +1084,11 @@ a { color: inherit; text-decoration: none; }
 }
 
 .extra-btn {
-  padding: 12px 8px;
+  padding: 14px 8px;
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   background: #fffbeb;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -1133,12 +1103,12 @@ a { color: inherit; text-decoration: none; }
 
 .wicket-btn {
   width: 100%;
-  padding: 16px;
+  padding: 18px;
   background: var(--live-red);
   color: #fff;
   border: none;
   border-radius: var(--radius);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   cursor: pointer;
   transition: var(--transition);
@@ -1149,18 +1119,6 @@ a { color: inherit; text-decoration: none; }
 .wicket-btn:hover {
   background: #c1121f;
   transform: scale(1.02);
-}
-
-.current-batters, .current-bowler {
-  margin-bottom: 16px;
-}
-
-.current-batters h4, .current-bowler h4 {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--text-light);
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
 }
 
 .batter-row, .bowler-row {
@@ -1189,11 +1147,6 @@ a { color: inherit; text-decoration: none; }
   font-variant-numeric: tabular-nums;
 }
 
-
-/* ===== PLAYER SELECT DROPDOWN ===== */
-.player-select-group {
-  margin-bottom: 16px;
-}
 
 .player-select-group label {
   display: block;
@@ -1657,42 +1610,6 @@ a { color: inherit; text-decoration: none; }
 .toast-info { background: #1e40af; color: #fff; }
 
 
-/* ===== OVER-BY-OVER DISPLAY ===== */
-.over-timeline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 0;
-}
-
-.over-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  background: #f8f9fa;
-  border-radius: var(--radius-sm);
-}
-
-.over-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-light);
-  margin-right: 4px;
-}
-
-.ball-dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .header-inner { padding: 0 12px; }
@@ -1764,26 +1681,6 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   gap: 12px;
 }
-
-.commentary-over {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--primary);
-  min-width: 36px;
-  text-align: right;
-  padding-top: 2px;
-}
-
-.commentary-text {
-  font-size: 14px;
-  flex: 1;
-}
-
-.commentary-text .highlight {
-  font-weight: 600;
-  color: var(--primary);
-}
-
 
 /* ===== GRID LAYOUT ===== */
 .grid-2 {
@@ -1988,21 +1885,21 @@ body {
   body { overflow-x: hidden; }
   .btn { min-height: 36px; }
   .run-btn {
-    padding: 10px 4px;
-    font-size: 20px;
-    min-height: 48px;
-    border-radius: 8px;
+    padding: 14px 6px;
+    font-size: 22px;
+    min-height: 56px;
+    border-radius: 10px;
   }
   .extra-btn {
-    padding: 8px 4px;
-    min-height: 36px;
-    font-size: 12px;
+    padding: 10px 4px;
+    min-height: 42px;
+    font-size: 13px;
   }
   .wicket-btn {
-    padding: 12px;
-    font-size: 15px;
-    min-height: 44px;
-    border-radius: 8px;
+    padding: 14px;
+    font-size: 17px;
+    min-height: 50px;
+    border-radius: 10px;
   }
 
   /* Scoring console: stack vertically on mobile */
