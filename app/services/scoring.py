@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.ball import Ball, ExtraType
+from app.models.ball import Ball, ExtraType, WicketType
 from app.models.innings import Innings
 from app.models.match import Match
 from app.models.player import Player
@@ -236,15 +236,15 @@ def get_scorecard(db: Session, innings_id: int) -> ScorecardOut:
                 "legal_balls": 0, "maidens": 0, "runs_conceded": 0, "wickets": 0,
                 "over_runs": {},
             }
-        bowler_map[pid]["runs_conceded"] += b.runs_scored + b.extra_runs
+        bowler_map[pid]["runs_conceded"] += b.runs_scored + (b.extra_runs if b.extra_type in (ExtraType.WIDE, ExtraType.NO_BALL) else 0)
         if b.is_legal:
             bowler_map[pid]["legal_balls"] += 1
-        if b.is_wicket:
+        if b.is_wicket and b.wicket_type not in (WicketType.RUN_OUT, WicketType.RETIRED):
             bowler_map[pid]["wickets"] += 1
         # Track runs per over for maiden calculation
         ov = b.over_number
         bowler_map[pid]["over_runs"].setdefault(ov, 0)
-        bowler_map[pid]["over_runs"][ov] += b.runs_scored + b.extra_runs
+        bowler_map[pid]["over_runs"][ov] += b.runs_scored + (b.extra_runs if b.extra_type in (ExtraType.WIDE, ExtraType.NO_BALL) else 0)
 
     bowlers = []
     for stats in bowler_map.values():
