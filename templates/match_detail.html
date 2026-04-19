@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderMatchDetail();
   if (matchData.status === 'live' || matchData.status === 'innings_break') {
     connectWs();
+    // Auto-refresh full scorecard every 10 seconds for live matches
+    setInterval(loadMatch, 10000);
   }
 });
 

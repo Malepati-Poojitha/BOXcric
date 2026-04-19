@@ -26,6 +26,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   [allTeams, allMatches] = await Promise.all([api('/teams/'), api('/matches/')]);
   renderMatches('all');
 
+  // Auto-refresh match list every 15 seconds if any match is live
+  if (allMatches.some(m => m.status === 'live' || m.status === 'innings_break')) {
+    setInterval(async () => {
+      var updated = await api('/matches/');
+      if (Array.isArray(updated)) {
+        allMatches = updated;
+        var active = document.querySelector('#matchTabs .tab.active');
+        renderMatches(active ? active.dataset.filter : 'all');
+      }
+    }, 15000);
+  }
+
   document.querySelectorAll('#matchTabs .tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('#matchTabs .tab').forEach(t => t.classList.remove('active'));

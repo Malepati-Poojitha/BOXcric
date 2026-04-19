@@ -75,6 +75,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   el('upcomingMatches').innerHTML = upcoming.length
     ? upcoming.map(m => matchCardUser(m, teams)).join('')
     : emptyState('📅', 'Nothing scheduled', 'Upcoming matches will appear here.');
+
+  // Auto-refresh live scores every 10 seconds
+  if (live.length) {
+    setInterval(async () => {
+      var updMatches = await api('/matches/');
+      if (!Array.isArray(updMatches)) return;
+      var updLive = updMatches.filter(m => m.status === 'live' || m.status === 'innings_break');
+      if (updLive.length) {
+        el('liveMatches').innerHTML = updLive.map(m => matchCardUser(m, teams)).join('');
+      }
+    }, 10000);
+  }
 });
 
 function matchCardUser(m, teams) {
