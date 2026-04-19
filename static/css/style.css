@@ -88,10 +88,62 @@
   border-color: var(--border);
 }
 
+[data-theme="dark"] .run-btn:hover {
+  background: #1e3a2a;
+  border-color: var(--primary);
+}
+
+[data-theme="dark"] .run-btn:active {
+  background: #253341;
+}
+
+[data-theme="dark"] .run-btn.four {
+  background: #0d2818;
+  border-color: #059669;
+  color: #34d399;
+}
+
+[data-theme="dark"] .run-btn.six {
+  background: #1a0d2e;
+  border-color: #7c3aed;
+  color: #a78bfa;
+}
+
 [data-theme="dark"] .extra-btn {
   background: #2a2215;
   color: #f5c842;
   border-color: #3d321c;
+}
+
+[data-theme="dark"] .extra-btn:hover {
+  background: #3d321c;
+  border-color: #f59e0b;
+}
+
+[data-theme="dark"] .wicket-type-btn {
+  background: var(--card-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .wicket-type-btn:hover,
+[data-theme="dark"] .wicket-type-btn.selected {
+  background: #3d1515;
+  border-color: var(--live-red);
+  color: #ff6b6b;
+}
+
+[data-theme="dark"] .empty-state {
+  color: var(--text);
+}
+
+[data-theme="dark"] .empty-state h3 {
+  color: var(--text);
+}
+
+[data-theme="dark"] select option {
+  background: var(--card-bg);
+  color: var(--text);
 }
 
 [data-theme="dark"] .bottom-nav {
