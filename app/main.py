@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.config import APP_TITLE, APP_VERSION, APP_DESCRIPTION
-from app.database import engine, Base, get_db, SessionLocal
+from app.database import engine, Base, get_db, SessionLocal, turso_sync
 from app.routers import players, teams, matches, scoring, stats, records
 from app.routers import user_auth, videos, rankings, probability, commentary, features
 from app.routers import notifications
@@ -103,6 +103,7 @@ app = FastAPI(
 
 # ── Keep-alive: self-ping every 10 min so Render doesn't sleep ──
 _keep_alive_task = None
+_turso_sync_task = None
 
 async def _keep_alive():
     """Ping our own /health endpoint every 10 minutes to stay warm."""
@@ -120,14 +121,32 @@ async def _keep_alive():
 
 @app.on_event("startup")
 async def startup_keep_alive():
-    global _keep_alive_task
+    global _keep_alive_task, _turso_sync_task
     _keep_alive_task = asyncio.create_task(_keep_alive())
+    _turso_sync_task = asyncio.create_task(_periodic_turso_sync())
 
 @app.on_event("shutdown")
 async def shutdown_keep_alive():
-    global _keep_alive_task
+    global _keep_alive_task, _turso_sync_task
     if _keep_alive_task:
         _keep_alive_task.cancel()
+    if _turso_sync_task:
+        _turso_sync_task.cancel()
+
+
+async def _periodic_turso_sync():
+    """Sync local Turso replica to remote every 5 seconds."""
+    while True:
+        await asyncio.sleep(5)
+        try:
+            await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(None, turso_sync),
+                timeout=4  # Don't let sync block longer than the interval
+            )
+        except asyncio.TimeoutError:
+            print("[TURSO] Periodic sync timed out")
+        except Exception as e:
+            print(f"[TURSO] Periodic sync error: {e}")
 
 
 @app.api_route("/health", methods=["GET", "HEAD"])

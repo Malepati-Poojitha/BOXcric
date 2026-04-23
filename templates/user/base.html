@@ -229,7 +229,7 @@
   </div>
   <script>
     (function() {
-      var dismissed = sessionStorage.getItem('loginPopupDismissed');
+      var dismissed = localStorage.getItem('loginPopupDismissed');
       if (!dismissed) {
         setTimeout(function() {
           document.getElementById('loginPopup').style.display = 'block';
@@ -238,7 +238,7 @@
     })();
     function dismissLoginPopup() {
       document.getElementById('loginPopup').style.display = 'none';
-      sessionStorage.setItem('loginPopupDismissed', '1');
+      localStorage.setItem('loginPopupDismissed', '1');
     }
   </script>
   {% endif %}

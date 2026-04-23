@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import StaticPool
+import threading
 
 from app.config import DATABASE_URL
 
@@ -18,35 +19,41 @@ if _is_libsql:
 
     class _LibsqlCursorWrapper:
         """Wraps libsql cursor to match sqlite3.Cursor interface."""
-        def __init__(self, cursor):
+        def __init__(self, cursor, lock):
             self._cursor = cursor
+            self._lock = lock
             self.description = cursor.description
             self.rowcount = cursor.rowcount
             self.lastrowid = getattr(cursor, 'lastrowid', None)
 
         def execute(self, sql, params=None):
-            if params:
-                self._cursor.execute(sql, params)
-            else:
-                self._cursor.execute(sql)
-            self.description = self._cursor.description
-            self.rowcount = self._cursor.rowcount
-            self.lastrowid = getattr(self._cursor, 'lastrowid', None)
+            with self._lock:
+                if params:
+                    self._cursor.execute(sql, params)
+                else:
+                    self._cursor.execute(sql)
+                self.description = self._cursor.description
+                self.rowcount = self._cursor.rowcount
+                self.lastrowid = getattr(self._cursor, 'lastrowid', None)
             return self
 
         def executemany(self, sql, params_list):
-            self._cursor.executemany(sql, params_list)
-            self.description = self._cursor.description
+            with self._lock:
+                self._cursor.executemany(sql, params_list)
+                self.description = self._cursor.description
             return self
 
         def fetchone(self):
-            return self._cursor.fetchone()
+            with self._lock:
+                return self._cursor.fetchone()
 
         def fetchmany(self, size=None):
-            return self._cursor.fetchmany(size) if size else self._cursor.fetchmany()
+            with self._lock:
+                return self._cursor.fetchmany(size) if size else self._cursor.fetchmany()
 
         def fetchall(self):
-            return self._cursor.fetchall()
+            with self._lock:
+                return self._cursor.fetchall()
 
         def close(self):
             self._cursor.close()
@@ -57,6 +64,7 @@ if _is_libsql:
     class _LibsqlConnectionWrapper:
         """Wraps libsql Connection to be fully compatible with sqlite3.Connection for SQLAlchemy."""
         def __init__(self):
+            self._lock = threading.RLock()
             self._connect()
 
         def _connect(self):
@@ -86,25 +94,27 @@ if _is_libsql:
                     print(f"[TURSO] Retry sync warning: {e2}")
 
         def cursor(self):
-            return _LibsqlCursorWrapper(self._conn.cursor())
+            with self._lock:
+                return _LibsqlCursorWrapper(self._conn.cursor(), self._lock)
 
         def commit(self):
-            self._conn.commit()
-            try:
-                self._conn.sync()
-            except Exception as e:
-                print(f"[TURSO] Sync after commit warning: {e}")
+            with self._lock:
+                self._conn.commit()
+            # Don't sync to remote on every commit — periodic sync handles it
+            # This keeps API responses fast (local commit is instant)
 
         def rollback(self):
-            self._conn.rollback()
+            with self._lock:
+                self._conn.rollback()
 
         def close(self):
             pass  # Keep connection alive for reuse
 
         def execute(self, sql, params=None):
-            if params:
-                return _LibsqlCursorWrapper(self._conn.execute(sql, params))
-            return _LibsqlCursorWrapper(self._conn.execute(sql))
+            with self._lock:
+                if params:
+                    return _LibsqlCursorWrapper(self._conn.execute(sql, params), self._lock)
+                return _LibsqlCursorWrapper(self._conn.execute(sql), self._lock)
 
         def create_function(self, *args, **kwargs):
             pass  # Not supported by libsql, but SQLAlchemy pysqlite calls it
@@ -133,6 +143,19 @@ if _is_libsql:
         poolclass=StaticPool,
     )
 
+    _sync_lock = threading.Lock()
+
+    def turso_sync():
+        """Push local changes to remote Turso. Called periodically."""
+        if not _sync_lock.acquire(blocking=False):
+            return  # Skip if previous sync still running
+        try:
+            _shared_conn._conn.sync()
+        except Exception as e:
+            print(f"[TURSO] Periodic sync warning: {e}")
+        finally:
+            _sync_lock.release()
+
 elif _is_sqlite:
     engine = create_engine(
         DATABASE_URL,
@@ -146,6 +169,11 @@ else:
         pool_pre_ping=True,
         pool_recycle=300,
     )
+
+if not _is_libsql:
+    def turso_sync():
+        pass  # No-op for non-Turso databases
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
